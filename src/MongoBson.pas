@@ -352,6 +352,13 @@ type
     property Value: Variant read GetAsVariant;
   end;
 
+  bson_p = ^bson_t;
+  bson_pp = ^bson_p;
+  bson_t = packed record
+    flags, len: LongWord;
+    padding: array[0..119] of Byte;
+  end;
+
   { A TBson holds a BSON document.  BSON is a binary, JSON-like document format.
     It is used to represent documents in MongoDB and also for network traffic.
     See http://www.mongodb.org/display/DOCS/BSON   }
@@ -371,8 +378,10 @@ type
     function valueAsInt64(const Name: UTF8String): Int64;
     function asJson : UTF8String;
     function getData: PByte;
+    function getNativeBson: bson_p;
     { Pointer to bson data }
     property Data : PByte read getData;
+    property NativeBson : bson_p read getNativeBson;
   end;
 
 function MkIntArray(const Arr : array of Integer): TIntegerArray;
@@ -448,6 +457,7 @@ function NewBsonTimestamp(i : IBsonIterator): IBsonTimestamp; overload;
 
 function NewBson(const json: UTF8String): IBson; overload;
 function NewBson(const AData: PByte; len: Cardinal): IBson; overload;
+function NewBson(const ANativeBson: bson_p): IBson; overload;
 function NewBsonCopy(const b: IBson): IBson;
 
 {$IFDEF DELPHIXE2}
@@ -615,7 +625,8 @@ type
 
   TBsonBuffer = class(TInterfacedObject, IBsonBuffer)
   private
-    FNativeBson: bson_t;
+    FNativeBson: bson_p;
+    FOwnsNativeBson: Boolean;
     FSubNativeBson: TStack; // we keep here subdocuments and arrays
     function appendIntCallback(i: Integer; const Arr): Boolean;
     function appendDoubleCallback(i: Integer; const Arr): Boolean;
@@ -684,14 +695,16 @@ type
 
   TBson = class(TInterfacedObject, IBson)
   private
-    FNativeBson: bson_t;
+    FNativeBson: bson_p;
+    FOwnsNativeBson: Boolean;
   public
-    constructor Create(const bson: bson_t); overload;
+    constructor Create(const ANativeBson: bson_p; OwnsNativeBson: Boolean = false); overload;
     constructor Create(const AData: PByte; len: Cardinal); overload;
     constructor Create(json: UTF8String); overload;
     constructor Create(const b: IBson); overload;
     destructor Destroy; override;
     function getData: PByte;
+    function getNativeBson: bson_p;
     function size: LongWord;
     function iterator: IBsonIterator;
     function find(const Name: UTF8String): IBsonIterator;
@@ -1000,16 +1013,18 @@ end;
 
 constructor TBsonBuffer.Create;
 begin
-  inherited Create;
-  bson_init(@FNativeBson);
+  inherited;
+  FNativeBson := bson_new;
+  FOwnsNativeBson := true;
   FSubNativeBson := TStack.Create;
 end;
 
 destructor TBsonBuffer.Destroy;
 begin
   FSubNativeBson.Free;
-  bson_destroy(@FNativeBson);
-  inherited Destroy;
+  if FOwnsNativeBson then
+    bson_destroy(FNativeBson);
+  inherited;
 end;
 
 function TBsonBuffer.GetCurrNativeBson: Pointer;
@@ -1017,7 +1032,7 @@ begin
   if  FSubNativeBson.Count > 0 then
     Result := FSubNativeBson.Peek
   else
-    Result := @FNativeBson;
+    Result := FNativeBson;
 end;
 
 {$IFDEF DELPHI2009}
@@ -1038,12 +1053,10 @@ begin
 end;
 
 function TBsonBuffer.appendCodeWithScope(const Name, Value: UTF8String; const scope: IBson): Boolean;
-var
-  b: bson_t;
 begin
-  bson_init_static(@b, scope.Data, scope.size);
-  Result := bson_append_code_with_scope(GetCurrNativeBson, PAnsiChar(Name), -1, PAnsiChar(Value), @b);
-  bson_destroy(@b);
+  Result := bson_append_code_with_scope(GetCurrNativeBson,
+                                        PAnsiChar(Name), -1, PAnsiChar(Value),
+                                        scope.NativeBson);
 end;
 
 function TBsonBuffer.appendSymbol(const Name, Value: UTF8String): Boolean;
@@ -1091,13 +1104,9 @@ end;
 
 function TBsonBuffer.append(const Name: UTF8String; Value: IBsonCodeWScope):
     Boolean;
-var
-  b: bson_t;
 begin
-  bson_init_static(@b, Value.getScope.Data, Value.getScope.size);
   Result := bson_append_code_with_scope(GetCurrNativeBson, PAnsiChar(Name), -1,
-    PAnsiChar(Value.getCode), @b);
-  bson_destroy(@b);
+    PAnsiChar(Value.getCode), Value.getScope.NativeBson);
 end;
 
 function TBsonBuffer.append(const Name: UTF8String; Value: IBsonRegex): Boolean;
@@ -1193,12 +1202,8 @@ begin
 end;
 
 function TBsonBuffer.append(const Name: UTF8String; Value: IBson): Boolean;
-var
-  b: bson_t;
 begin
-  bson_init_static(@b, Value.Data, Value.size);
-  Result := bson_append_document(GetCurrNativeBson, PAnsiChar(Name), -1, @b);
-  bson_destroy(@b);
+  Result := bson_append_document(GetCurrNativeBson, PAnsiChar(Name), -1, Value.NativeBson);
 end;
 
 type
@@ -1474,7 +1479,8 @@ end;
 
 function TBsonBuffer.finish: IBson;
 begin
-  Result := TBson.Create(FNativeBson);
+  FOwnsNativeBson := false;
+  Result := TBson.Create(FNativeBson, true);
 end;
 
 class function TBsonBuffer.UTF8StringFromTVarRec(const AVarRec: TVarRec):
@@ -1497,22 +1503,20 @@ end;
 
 { TBson }
 
-constructor TBson.Create(const bson: bson_t);
+constructor TBson.Create(const ANativeBson: bson_p; OwnsNativeBson: Boolean);
 begin
   inherited Create;
-  bson_copy_to(@bson, @FNativeBson);
+  FNativeBson := ANativeBson;
+  FOwnsNativeBson := OwnsNativeBson;
 end;
 
 constructor TBson.Create(const AData: PByte; len: Cardinal);
-var
-  p: Pointer;
 begin
   inherited Create;
-  p := bson_new_from_data(AData, len);
-  if p = nil then
+  FNativeBson := bson_new_from_data(AData, len);
+  if FNativeBson = nil then
     raise EBson.Create(S_FAILED_TO_INIT_BSON_FROM_DATA, E_FAILED_TO_INIT_BSON_FROM_DATA);
-  bson_copy_to(p, @FNativeBson);
-  bson_destroy(p);
+  FOwnsNativeBson := true;
 end;
 
 constructor TBson.Create(json: UTF8String);
@@ -1520,28 +1524,33 @@ var
   err: bson_error_t;
 begin
   inherited Create;
-  if not bson_init_from_json(@FNativeBson, PAnsiChar(json), length(json), @err) then
+  FNativeBson := bson_new_from_json(PAnsiChar(json), length(json), @err);
+  if FNativeBson = nil then
     raise EBson.CreateFmt(SFailedCreatingBSONFromJSON, [UTF8String(err.message), err.domain, err.code]);
+  FOwnsNativeBson := true;
 end;
 
 constructor TBson.Create(const b: IBson);
-var
-  p: Pointer;
 begin
-  p := bson_new_from_data(b.Data, b.size);
-  bson_copy_to(p, @FNativeBson);
-  bson_destroy(p);
+  FNativeBson := bson_copy(b.NativeBson);
+  FOwnsNativeBson := true;
 end;
 
 destructor TBson.Destroy();
 begin
-  bson_destroy(@FNativeBson);
+  if FOwnsNativeBson then
+    bson_destroy(FNativeBson);
   inherited Destroy;
 end;
 
 function TBson.getData: PByte;
 begin
-  Result := bson_get_data(@FNativeBson);
+  Result := bson_get_data(FNativeBson);
+end;
+
+function TBson.getNativeBson: bson_p;
+begin
+  Result := FNativeBson;
 end;
 
 function TBson.value(const Name: UTF8String): Variant;
@@ -1559,7 +1568,7 @@ function TBson.iterator: IBsonIterator;
 var
   it: bson_iter_t;
 begin
-  if not bson_iter_init(@it, @FNativeBson) then
+  if not bson_iter_init(@it, FNativeBson) then
     raise EBson.Create('bson_iter_init Failed');
   Result := TBsonIterator.Create(it);
 end;
@@ -1573,7 +1582,7 @@ function TBson.find(const Name: UTF8String): IBsonIterator;
 var
   it: bson_iter_t;
 begin
-  if not bson_iter_init_find(@it, @FNativeBson, PAnsiChar(Name)) then
+  if not bson_iter_init_find(@it, FNativeBson, PAnsiChar(Name)) then
     Result := nil
   else
     Result := TBsonIterator.Create(it);
@@ -1583,7 +1592,7 @@ function TBson.asJson: UTF8String;
 var
   p: PAnsiChar;
 begin
-  p := bson_as_json(@FNativeBson, nil);
+  p := bson_as_json(FNativeBson, nil);
   Result := UTF8String(p);
   bson_free(p);
 end;
@@ -1875,6 +1884,11 @@ end;
 function NewBson(const AData: PByte; len: Cardinal): IBson;
 begin
   Result := TBson.Create(AData, len);
+end;
+
+function NewBson(const ANativeBson: bson_p): IBson;
+begin
+  Result := TBson.Create(ANativeBson);
 end;
 
 var

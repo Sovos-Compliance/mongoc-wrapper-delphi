@@ -25,13 +25,6 @@ type
   bson_iter_p = ^bson_iter_t;
   bson_iter_t = array[0..127] of Byte;
 
-  bson_p = ^bson_t;
-  bson_pp = ^bson_p;
-  bson_t = packed record
-    flags, len: LongWord;
-    padding: array[0..119] of Byte;
-  end;
-
   PPbyte = ^PByte;
 
 {$IFNDEF OnDemandLibbsonLoad}
@@ -39,7 +32,7 @@ procedure bson_free(mem : PAnsiChar); cdecl; external LibBson_DLL;
 
 function bson_new : bson_p; cdecl; external LibBson_DLL;
 function bson_new_from_data(const data : PByte; length : Cardinal) : bson_p; cdecl; external LibBson_DLL;
-function bson_new_from_json(const data : PByte; length : Integer; error : bson_error_p) : bson_p; cdecl; external LibBson_DLL;
+function bson_new_from_json(const data : PAnsiChar; length : Integer; error : bson_error_p) : bson_p; cdecl; external LibBson_DLL;
 function bson_copy(const bson : bson_p) : Pointer; cdecl; external LibBson_DLL;
 procedure bson_copy_to(const src : bson_p; dst : bson_p); cdecl; external LibBson_DLL;
 procedure bson_init(bson : bson_p); cdecl; external LibBson_DLL;
