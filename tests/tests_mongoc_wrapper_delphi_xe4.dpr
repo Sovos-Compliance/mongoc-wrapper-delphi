@@ -15,8 +15,14 @@ uses
   MongoBsonSerializer in '..\src\MongoBsonSerializer.pas',
   uCnvDictionary in '..\src\uCnvDictionary.pas',
   uDelphi5 in '..\src\uDelphi5.pas',
-  MongoTestConsts in 'MongoTestConsts.pas',
-  uMain in 'uMain.pas';
+  uMain in 'uMain.pas',
+  uLibMongocAPI in '..\src\uLibMongocAPI.pas',
+  uMongoClient in '..\src\uMongoClient.pas',
+  uMongoReadPrefs in '..\src\uMongoReadPrefs.pas',
+  uTestMongoClient in 'uTestMongoClient.pas',
+  uMongoWriteConcern in '..\src\uMongoWriteConcern.pas',
+  uMongo in '..\src\uMongo.pas',
+  uTestMongo in 'uTestMongo.pas';
 
 begin
   Main;

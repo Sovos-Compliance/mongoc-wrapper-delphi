@@ -29,6 +29,7 @@ type
 
 {$IFNDEF OnDemandLibbsonLoad}
 procedure bson_free(mem : PAnsiChar); cdecl; external LibBson_DLL;
+procedure bson_strfreev(strv : PPAnsiChar); cdecl; external LibBson_DLL;
 
 function bson_new : bson_p; cdecl; external LibBson_DLL;
 function bson_new_from_data(const data : PByte; length : Cardinal) : bson_p; cdecl; external LibBson_DLL;
@@ -117,6 +118,7 @@ procedure FreeLibbsonLibrary;
 
 type
   Tbson_free = procedure(mem : PAnsiChar); cdecl;
+  Tbson_strfreev = procedure(strv : PPAnsiChar); cdecl;
 
   Tbson_new = function : bson_p; cdecl;
   Tbson_new_from_data = function(const data : PByte; length : Cardinal) : bson_p; cdecl;
@@ -201,6 +203,7 @@ type
 
 var
   bson_free: Tbson_free;
+  bson_strfreev: Tbson_strfreev;
   bson_new: Tbson_new;
   bson_new_from_data: Tbson_new_from_data;
   bson_new_from_json: Tbson_new_from_json;
@@ -281,6 +284,7 @@ begin
   if HLibbson = 0 then
     raise Exception.CreateFmt(SLoadDllFailed, [dll]);
   bson_free := LoadLibbsonFunc('bson_free');
+  bson_strfreev := LoadLibbsonFunc('bson_strfreev');
   bson_new := LoadLibbsonFunc('bson_new');
   bson_new_from_data := LoadLibbsonFunc('bson_new_from_data');
   bson_new_from_json := LoadLibbsonFunc('bson_new_from_json');

@@ -195,7 +195,7 @@ uses
   Classes,
   {$IFNDEF VER130}Variants, {$ENDIF}
   uDelphi5,
-  uPrimitiveAllocator, Math, DateUtils, MongoTestConsts;
+  uPrimitiveAllocator, Math, DateUtils, uTestMongo;
 
 procedure TestIBsonOID.SetUp;
 begin

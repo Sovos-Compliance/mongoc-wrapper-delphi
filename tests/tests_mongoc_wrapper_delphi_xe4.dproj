@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>tests_mongoc_wrapper_delphi_xe4.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Console</AppType>
@@ -108,8 +108,14 @@
         <DCCReference Include="..\src\MongoBsonSerializer.pas"/>
         <DCCReference Include="..\src\uCnvDictionary.pas"/>
         <DCCReference Include="..\src\uDelphi5.pas"/>
-        <DCCReference Include="MongoTestConsts.pas"/>
         <DCCReference Include="uMain.pas"/>
+        <DCCReference Include="..\src\uLibMongocAPI.pas"/>
+        <DCCReference Include="..\src\uMongoClient.pas"/>
+        <DCCReference Include="..\src\uMongoReadPrefs.pas"/>
+        <DCCReference Include="uTestMongoClient.pas"/>
+        <DCCReference Include="..\src\uMongoWriteConcern.pas"/>
+        <DCCReference Include="..\src\uMongo.pas"/>
+        <DCCReference Include="uTestMongo.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

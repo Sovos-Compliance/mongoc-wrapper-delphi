@@ -457,7 +457,7 @@ function NewBsonTimestamp(i : IBsonIterator): IBsonTimestamp; overload;
 
 function NewBson(const json: UTF8String): IBson; overload;
 function NewBson(const AData: PByte; len: Cardinal): IBson; overload;
-function NewBson(const ANativeBson: bson_p): IBson; overload;
+function NewBson(const ANativeBson: bson_p; AOwnsNativeBson: Boolean): IBson; overload;
 function NewBsonCopy(const b: IBson): IBson;
 
 {$IFDEF DELPHIXE2}
@@ -698,7 +698,7 @@ type
     FNativeBson: bson_p;
     FOwnsNativeBson: Boolean;
   public
-    constructor Create(const ANativeBson: bson_p; OwnsNativeBson: Boolean = false); overload;
+    constructor Create(const ANativeBson: bson_p; AOwnsNativeBson: Boolean); overload;
     constructor Create(const AData: PByte; len: Cardinal); overload;
     constructor Create(json: UTF8String); overload;
     constructor Create(const b: IBson); overload;
@@ -1503,11 +1503,11 @@ end;
 
 { TBson }
 
-constructor TBson.Create(const ANativeBson: bson_p; OwnsNativeBson: Boolean);
+constructor TBson.Create(const ANativeBson: bson_p; AOwnsNativeBson: Boolean);
 begin
   inherited Create;
   FNativeBson := ANativeBson;
-  FOwnsNativeBson := OwnsNativeBson;
+  FOwnsNativeBson := AOwnsNativeBson;
 end;
 
 constructor TBson.Create(const AData: PByte; len: Cardinal);
@@ -1886,9 +1886,9 @@ begin
   Result := TBson.Create(AData, len);
 end;
 
-function NewBson(const ANativeBson: bson_p): IBson;
+function NewBson(const ANativeBson: bson_p; AOwnsNativeBson: Boolean): IBson;
 begin
-  Result := TBson.Create(ANativeBson);
+  Result := TBson.Create(ANativeBson, AOwnsNativeBson);
 end;
 
 var
