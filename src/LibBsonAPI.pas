@@ -100,7 +100,7 @@ function bson_iter_oid(const iter : bson_iter_p) : PBsonOIDBytes; cdecl; externa
 function bson_iter_int32(const iter : bson_iter_p) : LongInt; cdecl; external LibBson_DLL;
 function bson_iter_int64(const iter : bson_iter_p) : Int64; cdecl; external LibBson_DLL;
 function bson_iter_double(const iter : bson_iter_p) : Double; cdecl; external LibBson_DLL;
-function bson_iter_utf8(const iter : bson_iter_p; length : LongWord) : PAnsiChar; cdecl; external LibBson_DLL;
+function bson_iter_utf8(const iter : bson_iter_p; length : PLongWord) : PAnsiChar; cdecl; external LibBson_DLL;
 function bson_iter_date_time(const iter : bson_iter_p) : Int64; cdecl; external LibBson_DLL;
 function bson_iter_bool(const iter : bson_iter_p) : Boolean; cdecl; external LibBson_DLL;
 function bson_iter_code(const iter : bson_iter_p; length : PLongWord) : PAnsiChar; cdecl; external LibBson_DLL;
