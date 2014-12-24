@@ -1345,7 +1345,7 @@ var
         begin
           BackupStack(BSON_TYPE_ARRAY);
           Result := startArray(Fld);
-          CurArrayIndex := -1; // CurArrayIndex will be incremented when this function returns
+          CurArrayIndex := 0;
         end
       else if def[i].VObject = End_Array then
         begin
