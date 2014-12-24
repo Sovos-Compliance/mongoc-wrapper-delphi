@@ -95,6 +95,8 @@ function bson_iter_type(const iter : bson_iter_p) : TBsonType; cdecl; external L
 function bson_iter_next(iter : bson_iter_p) : ByteBool; cdecl; external LibBson_DLL;
 function bson_iter_key(const iter : bson_iter_p) : PAnsiChar; cdecl; external LibBson_DLL;
 function bson_iter_recurse(const iter : bson_iter_p; child : bson_iter_p) : ByteBool; cdecl; external LibBson_DLL;
+function bson_iter_find_descendant(iter : bson_iter_p; const dotkey: PAnsiChar;
+  descendant : bson_iter_p) : ByteBool; cdecl; external LibBson_DLL;
 
 function bson_iter_oid(const iter : bson_iter_p) : PBsonOIDBytes; cdecl; external LibBson_DLL;
 function bson_iter_int32(const iter : bson_iter_p) : LongInt; cdecl; external LibBson_DLL;
@@ -184,6 +186,8 @@ type
   Tbson_iter_next = function(iter : bson_iter_p) : ByteBool; cdecl;
   Tbson_iter_key = function(const iter : bson_iter_p) : PAnsiChar; cdecl;
   Tbson_iter_recurse = function(const iter : bson_iter_p; child : bson_iter_p) : ByteBool; cdecl;
+  Tbson_iter_find_descendant = function(iter : bson_iter_p; const dotkey: PAnsiChar;
+    descendant : bson_iter_p) : ByteBool; cdecl;
 
   Tbson_iter_oid = function(const iter : bson_iter_p) : PBsonOIDBytes; cdecl;
   Tbson_iter_int32 = function(const iter : bson_iter_p) : LongInt; cdecl;
@@ -245,6 +249,7 @@ var
   bson_iter_next: Tbson_iter_next;
   bson_iter_key: Tbson_iter_key;
   bson_iter_recurse: Tbson_iter_recurse;
+  bson_iter_find_descendant: Tbson_iter_find_descendant;
   bson_iter_oid: Tbson_iter_oid;
   bson_iter_int32: Tbson_iter_int32;
   bson_iter_int64: Tbson_iter_int64;
@@ -326,6 +331,7 @@ begin
   bson_iter_next := LoadLibbsonFunc('bson_iter_next');
   bson_iter_key := LoadLibbsonFunc('bson_iter_key');
   bson_iter_recurse := LoadLibbsonFunc('bson_iter_recurse');
+  bson_iter_find_descendant := LoadLibbsonFunc('bson_iter_find_descendant');
   bson_iter_oid := LoadLibbsonFunc('bson_iter_oid');
   bson_iter_int32 := LoadLibbsonFunc('bson_iter_int32');
   bson_iter_int64 := LoadLibbsonFunc('bson_iter_int64');

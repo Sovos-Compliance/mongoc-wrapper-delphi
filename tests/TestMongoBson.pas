@@ -153,6 +153,8 @@ type
     procedure TestTryToReadPastEnd;
     procedure Testsubiterator;
     procedure TestValue;
+    procedure TestSubiteratorDotNotationSubDoc;
+    procedure TestSubiteratorDotNotationArray;
   end;
   // Test methods for class IBson
   
@@ -1579,6 +1581,26 @@ begin
   Check(ReturnValue <> nil, 'FIBsonIterator.subiterator should be different from nil');
   ReturnValue.Next;
   CheckEquals(123, integer(ReturnValue.Value), 'Value of subiterator should be equals to 123');
+end;
+
+procedure TestIBsonIterator.TestSubiteratorDotNotationSubDoc;
+begin
+  b := BSON(['root', '{', 'sub', 5, '}']);
+  FIBsonIterator := b.iterator.subiterator('root.sub');
+  Check(FIBsonIterator <> nil);
+  CheckEqualsString('sub', FIBsonIterator.key);
+  CheckEquals(5, FIBsonIterator.AsInteger);
+end;
+
+procedure TestIBsonIterator.TestSubiteratorDotNotationArray;
+var
+  it: IBsonIterator;
+  c: pansichar;
+begin
+  b := BSON(['root', '{', 'arr', '[', '{', 'a', 1, '}', '{', 'b', 2, '}', ']', '}']);
+  FIBsonIterator := b.find('root.arr.1.b');
+  Check(FIBsonIterator <> nil);
+  CheckEquals(2, FIBsonIterator.AsInteger);
 end;
 
 procedure TestIBsonIterator.TestValue;

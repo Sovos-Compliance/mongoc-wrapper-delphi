@@ -307,7 +307,8 @@ type
     function next: Boolean;
     { Get an TBsonIterator pointing to the first field of a subobject or array.
       kind() must be bsonOBJECT or bsonARRAY. }
-    function subiterator: IBsonIterator;
+    function subiterator: IBsonIterator; overload;
+    function subiterator(const dotkey: UTF8String): IBsonIterator; overload;
 
     function GetAsInt64: Int64;
     function GetAsUTF8String : UTF8String;
@@ -566,7 +567,8 @@ type
     function key: UTF8String;
     function next: Boolean;
     function GetAsVariant: Variant;
-    function subiterator: IBsonIterator;
+    function subiterator: IBsonIterator; overload;
+    function subiterator(const dotkey: UTF8String): IBsonIterator; overload;
     function getAsInt64: Int64;
     function GetAsUTF8String: UTF8String;
     function GetAsInteger: LongInt;
@@ -1011,6 +1013,13 @@ begin
   end;
   i := subiterator;
   j := 0;
+end;
+
+function TBsonIterator.subiterator(const dotkey: UTF8String): IBsonIterator;
+begin
+  Result := TBsonIterator.Create;
+  if not bson_iter_find_descendant(@FNativeIter, PAnsiChar(dotkey), Result.Handle) then
+    Result := nil;
 end;
 
 { TBsonBuffer }
@@ -1581,8 +1590,13 @@ end;
 function TBson.find(const Name: UTF8String): IBsonIterator;
 begin
   Result := TBsonIterator.Create(Self);
-  if not Result.Find(Name) then
-    Result := nil
+  if Pos('.', Name) = 0 then
+  begin
+    if not Result.Find(Name) then
+      Result := nil;
+  end
+  else
+    Result := Result.subiterator(Name);
 end;
 
 function TBson.asJson: UTF8String;
