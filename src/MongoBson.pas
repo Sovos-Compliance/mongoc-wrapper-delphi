@@ -557,8 +557,9 @@ type
         BSonType: TBsonType);
     procedure prepareArrayIterator(var i: IBsonIterator; var j, count: Integer;
         BSonType: TBsonType; const ATypeErrorMsg: UTF8String);
+    constructor Create; overload;
   public
-    constructor Create(const it: bson_iter_t);
+    constructor Create(const bson: IBson); overload;
     function Find(const Name: UTF8String): Boolean;
     function getHandle: Pointer;
     function kind: TBsonType;
@@ -794,12 +795,6 @@ end;
 
 { TBsonIterator }
 
-constructor TBsonIterator.Create(const it: bson_iter_t);
-begin
-  inherited Create;
-  FNativeIter := it;
-end;
-
 function TBsonIterator.Find(const Name: UTF8String): Boolean;
 begin
   while next do
@@ -923,12 +918,10 @@ begin
 end;
 
 function TBsonIterator.subiterator: IBsonIterator;
-var
-  it: bson_iter_t;
 begin
-  if not bson_iter_recurse(@FNativeIter, @it) then
+  Result := TBsonIterator.Create;
+  if not bson_iter_recurse(@FNativeIter, Result.Handle) then
     raise EBson.Create('bson_iter_recurse failed');
-  Result := TBsonIterator.Create(it);
 end;
 
 function TBsonIterator.AsIntegerArray: TIntegerArray;
@@ -959,6 +952,17 @@ begin
   prepareArrayIterator(i, j, count, BSON_TYPE_UTF8, UTF8String(SArrayComponentIsNotAString));
   SetLength(Result, Count);
   iterateAndFillArray(i, Result, j, BSON_TYPE_UTF8);
+end;
+
+constructor TBsonIterator.Create;
+begin
+
+end;
+
+constructor TBsonIterator.Create(const bson: IBson);
+begin
+  if not bson_iter_init(@FNativeIter, bson.NativeBson) then
+    raise EBson.Create('Invalid bson', E_TBsonHandleIsNil);
 end;
 
 function TBsonIterator.AsBooleanArray: TBooleanArray;
@@ -1565,12 +1569,8 @@ begin
 end;
 
 function TBson.iterator: IBsonIterator;
-var
-  it: bson_iter_t;
 begin
-  if not bson_iter_init(@it, FNativeBson) then
-    raise EBson.Create('bson_iter_init Failed');
-  Result := TBsonIterator.Create(it);
+  Result := TBsonIterator.Create(Self);
 end;
 
 function TBson.size: LongWord;
@@ -1579,13 +1579,10 @@ begin
 end;
 
 function TBson.find(const Name: UTF8String): IBsonIterator;
-var
-  it: bson_iter_t;
 begin
-  if not bson_iter_init_find(@it, FNativeBson, PAnsiChar(Name)) then
+  Result := TBsonIterator.Create(Self);
+  if not Result.Find(Name) then
     Result := nil
-  else
-    Result := TBsonIterator.Create(it);
 end;
 
 function TBson.asJson: UTF8String;
