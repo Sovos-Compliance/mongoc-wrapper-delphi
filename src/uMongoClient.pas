@@ -4,8 +4,8 @@ interface
 
 uses
   SysUtils,
-  uMongo, uMongoReadPrefs, uMongoWriteConcern,
-  MongoBson, LibBsonAPI;
+  uMongo, uMongoReadPrefs, uMongoWriteConcern, uMongoDatabase,
+  MongoBson, LibBsonAPI, uDelphi5;
 
 type
 
@@ -21,29 +21,26 @@ type
 
   EMongoClient = class(EMongo);
 
-  TMongoClient = class
+  TMongoClient = class(TMongoObject)
   private
     FNativeClient: Pointer;
-    FError: bson_error_t;
-    FCachedReadPrefs: IMongoReadPrefs;
-    FCachedMongoWriteConcern: IMongoWriteConcern;
     function GetMaxBsonSize: Longint;
     function GetMaxMessageSize: Longint;
-    function GetReadPrefs: IMongoReadPrefs;
-    procedure SetReadPrefs(const APrefs: IMongoReadPrefs);
-    function GetWriteConcern: IMongoWriteConcern;
-    procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern);
+  protected
+    function GetReadPrefs: IMongoReadPrefs; override;
+    procedure SetReadPrefs(const APrefs: IMongoReadPrefs); override;
+    function GetWriteConcern: IMongoWriteConcern; override;
+    procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern); override;
   public
     constructor Create(const uri_string: UTF8String);
     destructor Destroy; override;
     function RunCommand(const ADbName: UTF8String; const ACommand: IBson;
                         const AReadPrefs: IMongoReadPrefs): IBson;
-    function GetCollectionNames: TStringArray;
-    function GetServerStatus: IBson;
+    function GetDatabaseNames: TStringArray;
+    function GetServerStatus(const AReadPrefs: IMongoReadPrefs = nil): IBson;
+    function GetDatabase(const name: UTF8String): TMongoDatabase;
     property MaxBsonSize: Longint read GetMaxBsonSize;
     property MaxMessageSize: Longint read GetMaxMessageSize;
-    property ReadPrefs: IMongoReadPrefs read GetReadPrefs write SetReadPrefs;
-    property WriteConcern: IMongoWriteConcern read GetWriteConcern write SetWriteConcern;
   end;
 
 implementation
@@ -55,8 +52,7 @@ uses
 
 constructor TMongoClient.Create(const uri_string: UTF8String);
 begin
-  FCachedReadPrefs := nil;
-  FCachedMongoWriteConcern := nil;
+
   FNativeClient := mongoc_client_new(PAnsiChar(uri_string));
   if FNativeClient = nil then
     raise EMongoClient.Create('Uri string is invalid');
@@ -68,26 +64,21 @@ begin
   inherited;
 end;
 
-function TMongoClient.GetCollectionNames: TStringArray;
+function TMongoClient.GetDatabaseNames: TStringArray;
 var
   names: PPAnsiChar;
-  name: PAnsiChar;
-  i: Integer;
 begin
   names := mongoc_client_get_database_names(FNativeClient, @FError);
   if names = nil then
     raise EMongoClient.Create(@FError);
 
-  i := 0;
-  name := names^;
-  while name <> nil do
-  begin
-    SetLength(Result, i + 1);
-    Result[i] := UTF8String(name);
-    Inc(i);
-    name := PPAnsiChar(NativeInt(names) + i * SizeOf(PAnsiChar))^;
-  end;
+  Result := PPAnsiCharToUTF8StringStringArray(names);
   bson_strfreev(names);
+end;
+
+function TMongoClient.GetDatabase(const name: UTF8String): TMongoDatabase;
+begin
+  Result := TMongoDatabase.Create(mongoc_client_get_database(FNativeClient, PAnsiChar(name)));
 end;
 
 function TMongoClient.GetMaxBsonSize: Longint;
@@ -107,10 +98,17 @@ begin
   Result := FCachedReadPrefs;
 end;
 
-function TMongoClient.GetServerStatus: IBson;
+function TMongoClient.GetServerStatus(const AReadPrefs: IMongoReadPrefs): IBson;
+var
+  read_prefs: Pointer;
 begin
+  if AReadPrefs <> nil then
+    read_prefs := AReadPrefs.NativeReadPrefs
+  else
+    read_prefs := nil;
   Result := NewBson(bson_new, true);
-  if mongoc_client_get_server_status(FNativeClient, nil, Result.NativeBson, @FError) = 0 then
+
+  if mongoc_client_get_server_status(FNativeClient, read_prefs, Result.NativeBson, @FError) = 0 then
     raise EMongoClient.Create(@FError);
 end;
 

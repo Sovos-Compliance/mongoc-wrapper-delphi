@@ -3,7 +3,7 @@ unit uLibMongocAPI;
 interface
 
 uses
-  Windows, SysUtils, LibBsonAPI, MongoBson, uMongoReadPrefs;
+  Windows, SysUtils, LibBsonAPI, MongoBson, uMongoReadPrefs, uDelphi5;
 
 const
   LibMongoc_Dll = LibBson_DLL;
@@ -158,6 +158,13 @@ const
                                             const write_concern: Pointer);
   cdecl; external LibMongoc_Dll;
 
+{ mongoc_database_t *
+  mongoc_client_get_database (mongoc_client_t *client,
+                              const char      *name); }
+  function mongoc_client_get_database(client: Pointer;
+                                      const name: PAnsiChar): Pointer;
+  cdecl; external LibMongoc_Dll;
+
 
 //
 // mongoc_write_concern_t
@@ -257,12 +264,103 @@ const
 //
 
 
+{ void
+  mongoc_database_destroy (mongoc_database_t *database); }
+  procedure mongoc_database_destroy(database: Pointer);
+  cdecl; external LibMongoc_Dll;
+
 { bool
   mongoc_database_drop (mongoc_database_t *database,
                         bson_error_t      *error); }
   function mongoc_database_drop(database: Pointer; error: bson_error_p): Byte;
   cdecl; external LibMongoc_Dll;
 
+{ bool
+  mongoc_database_add_user (mongoc_database_t *database,
+                            const char        *username,
+                            const char        *password,
+                            const bson_t      *roles,
+                            const bson_t      *custom_data,
+                            bson_error_t      *error); }
+  function mongoc_database_add_user(database: Pointer;
+                                    const username, password: PAnsiChar;
+                                    const roles, custom_data: bson_p;
+                                    error: bson_error_p): Byte;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_database_remove_all_users (mongoc_database_t *database,
+                                    bson_error_t      *error); }
+  function mongoc_database_remove_all_users(database: Pointer;
+                                            error: bson_error_p): Byte;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_database_command_simple (mongoc_database_t         *database,
+                                  const bson_t              *command,
+                                  const mongoc_read_prefs_t *read_prefs,
+                                  bson_t                    *reply,
+                                  bson_error_t              *error); }
+  function mongoc_database_command_simple(database: Pointer;
+                                          const command: bson_p;
+                                          const read_prefs: Pointer;
+                                          reply: bson_p;
+                                          error: bson_error_p): Byte;
+  cdecl; external LibMongoc_Dll;
+
+{ char **
+  mongoc_database_get_collection_names (mongoc_database_t *database,
+                                        bson_error_t      *error); }
+  function mongoc_database_get_collection_names(database: Pointer;
+                                                error: bson_error_p): PPAnsiChar;
+  cdecl; external LibMongoc_Dll;
+
+{ const char *
+  mongoc_database_get_name (mongoc_database_t *database); }
+  function mongoc_database_get_name(database: Pointer): PAnsiChar;
+  cdecl; external LibMongoc_Dll;
+
+{ const mongoc_read_prefs_t *
+  mongoc_database_get_read_prefs (const mongoc_database_t *database); }
+  function mongoc_database_get_read_prefs(const database: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ const mongoc_write_concern_t *
+  mongoc_database_get_write_concern (const mongoc_database_t *database); }
+  function mongoc_database_get_write_concern(const database: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_database_has_collection (mongoc_database_t *database,
+                                  const char        *name,
+                                  bson_error_t      *error); }
+  function mongoc_database_has_collection(database: Pointer;
+                                          const name: PAnsiChar;
+                                          error: bson_error_p): Byte;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_database_remove_user (mongoc_database_t *database,
+                               const char        *username,
+                               bson_error_t      *error); }
+  function mongoc_database_remove_user(database: Pointer;
+                                       const username: PAnsiChar;
+                                       error: bson_error_p): Byte;
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_database_set_read_prefs (mongoc_database_t         *database,
+                                  const mongoc_read_prefs_t *read_prefs); }
+  procedure mongoc_database_set_read_prefs(database: Pointer;
+                                           const read_prefs: Pointer);
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_database_set_write_concern  (mongoc_database_t            *database,
+                                      const mongoc_write_concern_t *write_concern); }
+  procedure mongoc_database_set_write_concern(database: Pointer;
+                                              const write_concern: Pointer);
+  cdecl; external LibMongoc_Dll;
 
 implementation
 

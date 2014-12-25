@@ -22,7 +22,9 @@ uses
   uTestMongoClient in 'uTestMongoClient.pas',
   uMongoWriteConcern in '..\src\uMongoWriteConcern.pas',
   uMongo in '..\src\uMongo.pas',
-  uTestMongo in 'uTestMongo.pas';
+  uTestMongo in 'uTestMongo.pas',
+  uMongoDatabase in '..\src\uMongoDatabase.pas',
+  uTestMongoDatabase in 'uTestMongoDatabase.pas';
 
 begin
   Main;
