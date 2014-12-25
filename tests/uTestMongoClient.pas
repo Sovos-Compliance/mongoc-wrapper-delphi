@@ -36,7 +36,7 @@ var
   tags: IBsonBuffer;
   it: IBsonIterator;
 begin
-  prefs := NewMongoReadPrefs(READ_NEAREST);
+  prefs := NewMongoReadPrefs(MONGOC_READ_NEAREST);
   tags := NewBsonBuffer;
   tags.appendStr('test', 'my val');
   prefs.Tags := tags.finish;
@@ -46,7 +46,7 @@ begin
   prefs := nil;
 
   Check(FClient.ReadPrefs.Valid);
-  Check(READ_NEAREST = FClient.ReadPrefs.Mode);
+  Check(MONGOC_READ_NEAREST = FClient.ReadPrefs.Mode);
   it := FClient.ReadPrefs.Tags.find('test');
   CheckEqualsString('my val', it.Value);
 end;
@@ -58,7 +58,7 @@ begin
   wc := NewMongoWriteConcern;
   wc.Fsync := true;
   wc.Journal := true;
-  wc.W := MAJORITY;
+  wc.W := MONGOC_WRITE_CONCERN_W_MAJORITY;
 
   FClient.WriteConcern := wc;
   wc := nil;
@@ -66,7 +66,7 @@ begin
   Check(FClient.WriteConcern.Fsync);
   Check(FClient.WriteConcern.Journal);
   Check(FClient.WriteConcern.GetWMajority);
-  Check(MAJORITY = FClient.WriteConcern.W);
+  Check(MONGOC_WRITE_CONCERN_W_MAJORITY = FClient.WriteConcern.W);
   CheckEqualsString('', string(FClient.WriteConcern.WTag));
   CheckEquals(0, FClient.WriteConcern.WTimeOut);
 end;
@@ -75,7 +75,7 @@ procedure TestMongoClient.GetDatabaseNames;
 var
   names: TStringArray;
 begin
-  names := FClient.GetCollectionNames;
+  names := FClient.GetDatabaseNames;
   Check(Length(names) > 0);
   CheckEqualsString('admin', string(names[0]));
 end;
@@ -95,7 +95,7 @@ end;
 
 procedure TestMongoClient.GetWriteConcern;
 begin
-  Check(DEFAULT = FClient.WriteConcern.W);
+  Check(MONGOC_WRITE_CONCERN_W_DEFAULT = FClient.WriteConcern.W);
   Check(not FClient.WriteConcern.Journal);
   Check(not FClient.WriteConcern.Fsync);
   Check(not FClient.WriteConcern.GetWMajority);
@@ -145,7 +145,7 @@ end;
 
 procedure TestMongoClient.GetReadPrefs;
 begin
-  Check(READ_PRIMARY = FClient.ReadPrefs.Mode);
+  Check(MONGOC_READ_PRIMARY = FClient.ReadPrefs.Mode);
   Check(FClient.ReadPrefs.Valid);
   CheckEqualsString('{ }', string(FClient.ReadPrefs.Tags.asJson));
 end;

@@ -2,14 +2,18 @@ unit uMongoWriteConcern;
 
 interface
 
+uses
+  uDelphi5;
+
+const
+  MONGOC_WRITE_CONCERN_W_UNACKNOWLEDGED =  0;
+  MONGOC_WRITE_CONCERN_W_IGNORED = -1;
+  MONGOC_WRITE_CONCERN_W_DEFAULT = -2;
+  MONGOC_WRITE_CONCERN_W_MAJORITY = -3;
+  MONGOC_WRITE_CONCERN_W_TAG = -4;
+
 type
-  TMongoWriteConcernW = (
-    UNACKNOWLEDGED =  0,
-    ERRORS_IGNORED = -1,
-    DEFAULT        = -2,
-    MAJORITY       = -3,
-    TAG            = -4
-  );
+  TMongoWriteConcernW = LongInt; // see MONGOC_WRITE_CONCERN_W_* consts
 
   IMongoWriteConcern = interface
     ['{52ce95f7-6968-46e1-9758-d4947376a5f6}']

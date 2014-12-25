@@ -18,6 +18,7 @@ type
   PPAnsiChar = ^PAnsiChar;
   PCardinal = ^Cardinal;
   PLongWord = ^LongWord;
+  NativeInt = Integer;
 
 const
   MinDateTime: TDateTime = -657434.0;      { 01/01/0100 12:00:00.000 AM }

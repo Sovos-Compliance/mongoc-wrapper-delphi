@@ -1593,9 +1593,6 @@ begin
 end;
 
 procedure TestIBsonIterator.TestSubiteratorDotNotationArray;
-var
-  it: IBsonIterator;
-  c: pansichar;
 begin
   b := BSON(['root', '{', 'arr', '[', '{', 'a', 1, '}', '{', 'b', 2, '}', ']', '}']);
   FIBsonIterator := b.find('root.arr.1.b');

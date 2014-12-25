@@ -5,12 +5,15 @@ interface
 uses
   MongoBson;
 
+const
+  MONGOC_READ_PRIMARY = 1;
+  MONGOC_READ_SECONDARY = 2;
+  MONGOC_READ_PRIMARY_PREFERRED = 5;
+  MONGOC_READ_SECONDARY_PREFERRED = 6;
+  MONGOC_READ_NEAREST = 10;
+
 type
-  TMongoReadMode = (READ_PRIMARY = 1,
-                    READ_SECONDARY = 2,
-                    READ_PRIMARY_PREFERRED = 5,
-                    READ_SECONDARY_PREFERRED = 6,
-                    READ_NEAREST = 10);
+  TMongoReadMode = LongInt; // see MONGOC_READ_* constants
 
   IMongoReadPrefs = interface
     ['{32cee1dd-c4ac-4397-bbe3-d3e4e48d3401}']
@@ -51,7 +54,7 @@ type
   public
     constructor Create(mode: TMongoReadMode); overload;
     constructor Create(ANativeReadPrefs: Pointer; AOwns: Boolean); overload;
-    constructor Create(const AReadPrefs: TMongoReadPrefs); overload;
+    constructor Create(const AReadPrefs: IMongoReadPrefs); overload;
     destructor Destroy; override;
     procedure AddMode(const ATag: IBson);
     property Valid: Boolean read GetValid;
@@ -73,11 +76,11 @@ begin
   FNativeReadPrefs := mongoc_read_prefs_new(mode);
 end;
 
-constructor TMongoReadPrefs.Create(const AReadPrefs: TMongoReadPrefs);
+constructor TMongoReadPrefs.Create(const AReadPrefs: IMongoReadPrefs);
 begin
   FTags := nil;
   FOwnsNativeReadPrefs := true;
-  FNativeReadPrefs := mongoc_read_prefs_copy(AReadPrefs.FNativeReadPrefs);
+  FNativeReadPrefs := mongoc_read_prefs_copy(AReadPrefs.NativeReadPrefs);
 end;
 
 constructor TMongoReadPrefs.Create(ANativeReadPrefs: Pointer;
@@ -139,7 +142,7 @@ end;
 
 function NewMongoReadPrefs(const AReadPrefs: IMongoReadPrefs): IMongoReadPrefs;
 begin
-  Result := TMongoReadPrefs.Create(AReadPrefs.NativeReadPrefs);
+  Result := TMongoReadPrefs.Create(AReadPrefs);
 end;
 
 end.
