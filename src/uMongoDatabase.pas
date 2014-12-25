@@ -61,8 +61,8 @@ begin
   else
     cd := ACustomData.NativeBson;
 
-  if mongoc_database_add_user(FNativeDatabase, PAnsiChar(AUserName),
-                              PAnsiChar(APassword), roles, cd, @FError) = 0 then
+  if not mongoc_database_add_user(FNativeDatabase, PAnsiChar(AUserName),
+                              PAnsiChar(APassword), roles, cd, @FError) then
     raise EMongoDatabase.Create(@FError);
 end;
 
@@ -79,7 +79,7 @@ end;
 
 procedure TMongoDatabase.Drop;
 begin
-  if mongoc_database_drop(FNativeDatabase, @FError) = 0 then
+  if not mongoc_database_drop(FNativeDatabase, @FError) then
     raise EMongoDatabase.Create(@FError);
 end;
 
@@ -122,18 +122,18 @@ end;
 function TMongoDatabase.HasCollection(const name: UTF8String): Boolean;
 begin
   Result := mongoc_database_has_collection(FNativeDatabase,
-                                           PAnsiChar(name), @FError) <> 0;
+                                           PAnsiChar(name), @FError);
 end;
 
 procedure TMongoDatabase.RemoveAllUsers;
 begin
-  if mongoc_database_remove_all_users(FNativeDatabase, @FError) = 0 then
+  if not mongoc_database_remove_all_users(FNativeDatabase, @FError) then
     raise EMongoDatabase.Create(@FError);
 end;
 
 procedure TMongoDatabase.RemoveUser(const name: UTF8String);
 begin
-  if mongoc_database_remove_user(FNativeDatabase, PAnsiChar(name), @FError) = 0 then
+  if not mongoc_database_remove_user(FNativeDatabase, PAnsiChar(name), @FError) then
     raise EMongoDatabase.Create(@FError);
 end;
 
@@ -150,9 +150,9 @@ begin
     read_prefs := nil;
   Result := NewBson(bson_new, true);
 
-  if mongoc_database_command_simple(FNativeDatabase, ACommand.NativeBson,
+  if not mongoc_database_command_simple(FNativeDatabase, ACommand.NativeBson,
                                     read_prefs, Result.NativeBson,
-                                    @FError) = 0 then
+                                    @FError) then
     raise EMongoDatabase.Create(@FError);
 end;
 

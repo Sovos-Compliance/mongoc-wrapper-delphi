@@ -117,7 +117,7 @@ end;
 
 function TMongoReadPrefs.GetValid: Boolean;
 begin
-  Result := mongoc_read_prefs_is_valid(FNativeReadPrefs) <> 0;
+  Result := mongoc_read_prefs_is_valid(FNativeReadPrefs);
 end;
 
 procedure TMongoReadPrefs.SetMode(AMode: TMongoReadMode);

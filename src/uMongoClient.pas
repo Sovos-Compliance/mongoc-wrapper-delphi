@@ -108,7 +108,7 @@ begin
     read_prefs := nil;
   Result := NewBson(bson_new, true);
 
-  if mongoc_client_get_server_status(FNativeClient, read_prefs, Result.NativeBson, @FError) = 0 then
+  if not mongoc_client_get_server_status(FNativeClient, read_prefs, Result.NativeBson, @FError) then
     raise EMongoClient.Create(@FError);
 end;
 
@@ -132,8 +132,8 @@ begin
     read_prefs := nil;
   Result := NewBson(bson_new, true);
 
-  if mongoc_client_command_simple(FNativeClient, PAnsiChar(ADbName), ACommand.NativeBson,
-                                  read_prefs, Result.NativeBson, @FError) = 0 then
+  if not mongoc_client_command_simple(FNativeClient, PAnsiChar(ADbName), ACommand.NativeBson,
+                                  read_prefs, Result.NativeBson, @FError) then
     raise EMongoClient.Create(@FError);
 end;
 

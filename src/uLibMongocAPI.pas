@@ -41,7 +41,7 @@ const
 
 { bool
   mongoc_read_prefs_is_valid (const mongoc_read_prefs_t *read_prefs); }
-  function mongoc_read_prefs_is_valid(const read_prefs: Pointer): Byte;
+  function mongoc_read_prefs_is_valid(const read_prefs: Pointer): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { void
@@ -103,7 +103,7 @@ const
                                         const command: bson_p;
                                         const read_prefs: Pointer;
                                         reply: bson_p;
-                                        error: bson_error_p): Byte;
+                                        error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { char **
@@ -136,7 +136,7 @@ const
   function mongoc_client_get_server_status(client: Pointer;
                                            read_prefs: Pointer;
                                            reply: bson_p;
-                                           error: bson_error_p): Byte;
+                                           error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { void
@@ -188,12 +188,12 @@ const
 
 { bool
   mongoc_write_concern_get_fsync (const mongoc_write_concern_t *write_concern); }
-  function mongoc_write_concern_get_fsync(const write_concern: Pointer): Byte;
+  function mongoc_write_concern_get_fsync(const write_concern: Pointer): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { bool
   mongoc_write_concern_get_journal (const mongoc_write_concern_t *write_concern); }
-  function mongoc_write_concern_get_journal(const write_concern: Pointer): Byte;
+  function mongoc_write_concern_get_journal(const write_concern: Pointer): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { int32_t
@@ -203,7 +203,7 @@ const
 
 { bool
   mongoc_write_concern_get_wmajority (const mongoc_write_concern_t *write_concern); }
-  function mongoc_write_concern_get_wmajority(const write_concern: Pointer): Byte;
+  function mongoc_write_concern_get_wmajority(const write_concern: Pointer): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { const char *
@@ -220,14 +220,14 @@ const
   mongoc_write_concern_set_fsync (mongoc_write_concern_t *write_concern,
                                   bool                    fsync_); }
   procedure mongoc_write_concern_set_fsync(write_concern: Pointer;
-                                           fsync_: Byte);
+                                           fsync_: ByteBool);
   cdecl; external LibMongoc_Dll;
 
 { void
   mongoc_write_concern_set_journal (mongoc_write_concern_t *write_concern,
                                     bool                    journal); }
   procedure mongoc_write_concern_set_journal(write_concern: Pointer;
-                                             journal: Byte);
+                                             journal: ByteBool);
   cdecl; external LibMongoc_Dll;
 
 { void
@@ -272,7 +272,7 @@ const
 { bool
   mongoc_database_drop (mongoc_database_t *database,
                         bson_error_t      *error); }
-  function mongoc_database_drop(database: Pointer; error: bson_error_p): Byte;
+  function mongoc_database_drop(database: Pointer; error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { bool
@@ -285,14 +285,14 @@ const
   function mongoc_database_add_user(database: Pointer;
                                     const username, password: PAnsiChar;
                                     const roles, custom_data: bson_p;
-                                    error: bson_error_p): Byte;
+                                    error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { bool
   mongoc_database_remove_all_users (mongoc_database_t *database,
                                     bson_error_t      *error); }
   function mongoc_database_remove_all_users(database: Pointer;
-                                            error: bson_error_p): Byte;
+                                            error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { bool
@@ -305,7 +305,7 @@ const
                                           const command: bson_p;
                                           const read_prefs: Pointer;
                                           reply: bson_p;
-                                          error: bson_error_p): Byte;
+                                          error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { char **
@@ -336,7 +336,7 @@ const
                                   bson_error_t      *error); }
   function mongoc_database_has_collection(database: Pointer;
                                           const name: PAnsiChar;
-                                          error: bson_error_p): Byte;
+                                          error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { bool
@@ -345,7 +345,7 @@ const
                                bson_error_t      *error); }
   function mongoc_database_remove_user(database: Pointer;
                                        const username: PAnsiChar;
-                                       error: bson_error_p): Byte;
+                                       error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { void

@@ -108,12 +108,12 @@ end;
 
 function TMongoWriteConcern.GetFsync: Boolean;
 begin
-  Result := mongoc_write_concern_get_fsync(FNativeWriteConcern) <> 0;
+  Result := mongoc_write_concern_get_fsync(FNativeWriteConcern);
 end;
 
 function TMongoWriteConcern.GetJournal: Boolean;
 begin
-  Result := mongoc_write_concern_get_journal(FNativeWriteConcern) <> 0;
+  Result := mongoc_write_concern_get_journal(FNativeWriteConcern);
 end;
 
 function TMongoWriteConcern.GetNativeWriteConcern: Pointer;
@@ -128,7 +128,7 @@ end;
 
 function TMongoWriteConcern.GetWMajority: Boolean;
 begin
-  Result := mongoc_write_concern_get_wmajority(FNativeWriteConcern) <> 0;
+  Result := mongoc_write_concern_get_wmajority(FNativeWriteConcern);
 end;
 
 function TMongoWriteConcern.GetWTag: UTF8String;
@@ -143,12 +143,12 @@ end;
 
 procedure TMongoWriteConcern.SetFsync(AFsync: Boolean);
 begin
-  mongoc_write_concern_set_fsync(FNativeWriteConcern, Byte(AFsync));
+  mongoc_write_concern_set_fsync(FNativeWriteConcern, AFsync);
 end;
 
 procedure TMongoWriteConcern.SetJournal(AJournal: Boolean);
 begin
-  mongoc_write_concern_set_journal(FNativeWriteConcern, Byte(AJournal));
+  mongoc_write_concern_set_journal(FNativeWriteConcern, AJournal);
 end;
 
 procedure TMongoWriteConcern.SetW(AW: TMongoWriteConcernW);
