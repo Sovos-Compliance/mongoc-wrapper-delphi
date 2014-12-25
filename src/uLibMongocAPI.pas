@@ -6,12 +6,7 @@ uses
   Windows, SysUtils, LibBsonAPI, MongoBson, uMongoReadPrefs;
 
 const
-  (* PLEASE!!! maintain this constant in sync with the dll driver version this code operates with *)
-  LibMongoc_DllVersion = '1.0.1';
-
-  CPUType = {$IFDEF WIN64} '64' {$ELSE} '32' {$ENDIF};
-  ConfigType = {$IFDEF DEBUG} 'd' {$ELSE} 'r' {$ENDIF};
-  LibMongoc_Dll = 'mongo-client_' + ConfigType + CPUType + '_v' + LibMongoc_DllVersion + '.dll';
+  LibMongoc_Dll = LibBson_DLL;
 
 //
 
@@ -267,6 +262,7 @@ const
                         bson_error_t      *error); }
   function mongoc_database_drop(database: Pointer; error: bson_error_p): Byte;
   cdecl; external LibMongoc_Dll;
+
 
 implementation
 

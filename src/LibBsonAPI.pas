@@ -7,11 +7,11 @@ uses
 
 const
   (* PLEASE!!! maintain this constant in sync with the dll driver version this code operates with *)
-  LibBson_DllVersion = '1-0-1';
+  LibBson_DllVersion = '1.1.0';
 
   CPUType = {$IFDEF WIN64} '64' {$ELSE} '32' {$ENDIF};
   ConfigType = {$IFDEF DEBUG} 'd' {$ELSE} 'r' {$ENDIF};
-  LibBson_DLL = 'libbson_' + ConfigType + CPUType + '_v' + LibBson_DllVersion + '.dll';
+  LibBson_DLL = 'mongo-client_' + ConfigType + CPUType + '_v' + LibBson_DllVersion + '.dll';
 
 type
   { IMPORTANT: Keep this structures sync with C code }
