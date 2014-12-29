@@ -456,9 +456,10 @@ function NewBsonTimestamp(atime, aincrement: LongWord): IBsonTimestamp; overload
   field. }
 function NewBsonTimestamp(i : IBsonIterator): IBsonTimestamp; overload;
 
+function NewBson: IBson; overload;
 function NewBson(const json: UTF8String): IBson; overload;
 function NewBson(const AData: PByte; len: Cardinal): IBson; overload;
-function NewBson(ANativeBson: bson_p; AOwnsNativeBson: Boolean): IBson; overload;
+function NewBson(ANativeBson: bson_p): IBson; overload;
 function NewBsonCopy(const b: IBson): IBson;
 
 {$IFDEF DELPHIXE2}
@@ -1887,6 +1888,11 @@ begin
   Result := TBsonBuffer.Create;
 end;
 
+function NewBson: IBson;
+begin
+  Result := TBson.Create(bson_new, true);
+end;
+
 function NewBson(const json: UTF8String): IBson;
 begin
   Result := TBson.Create(json);
@@ -1897,9 +1903,9 @@ begin
   Result := TBson.Create(AData, len);
 end;
 
-function NewBson(ANativeBson: bson_p; AOwnsNativeBson: Boolean): IBson;
+function NewBson(ANativeBson: bson_p): IBson;
 begin
-  Result := TBson.Create(ANativeBson, AOwnsNativeBson);
+  Result := TBson.Create(ANativeBson, false);
 end;
 
 var
