@@ -20,13 +20,15 @@ type
     procedure HasCollection;
     procedure RemoveUser;
     procedure RemoveAllUsers;
+    procedure CreateCollection;
   end;
 
 implementation
 
 uses
   uLibMongocAPI,
-  MongoBson;
+  MongoBson,
+  uMongoCollection;
 
 { TestMongoDatabase }
 
@@ -46,6 +48,29 @@ begin
     on e: EMongoDatabase do
       CheckEqualsString('User "' + EXPECTED_USER + '" already exists', e.Message);
   end;
+end;
+
+procedure TestMongoDatabase.CreateCollection;
+const
+  maxDocs = 5;
+  maxSize = 8 * 1024;
+var
+  coll: TMongoCollection;
+  it: IBsonIterator;
+begin
+  coll := FDatabase.CreateCollection('test_options', true, maxSize, maxDocs, false, false);
+
+  it := coll.GetStats.find('lastExtentSize');
+  CheckEquals(maxSize, it.AsInteger);
+
+  Check(it.Find('indexSizes'));
+  CheckFalse(it.subiterator.next);
+
+  Check(it.Find('capped'));
+  Check(it.AsBoolean);
+
+  Check(it.Find('max'));
+  CheckEquals(maxDocs, it.AsInteger);
 end;
 
 procedure TestMongoDatabase.Drop_InvalidName;

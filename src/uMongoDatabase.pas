@@ -1,11 +1,6 @@
 unit uMongoDatabase;
 
 interface
-{ TODO:
-  mongoc_database_command
-  mongoc_database_create_collection
-  mongoc_database_get_collection
-}
 
 uses
   MongoBson, uDelphi5,
@@ -37,6 +32,12 @@ type
     procedure RemoveAllUsers;
     procedure RemoveUser(const name: UTF8String);
     function GetCollection(const name: UTF8String): TMongoCollection;
+    function CreateCollection(const name: UTF8String;
+                              ACapped: Boolean = false;
+                              AMaxSize: Cardinal = 0;
+                              AMaxDocuments: Cardinal = 0;
+                              AAutoIndexId: Boolean = true;
+                              AUsePowerOf2Sizes: Boolean = true): TMongoCollection;
     property NativeDatabase: Pointer read GetNativeDatabase;
     property Name: UTF8String read GetName;
   end;
@@ -70,6 +71,35 @@ end;
 constructor TMongoDatabase.Create(ANativeDatabase: Pointer);
 begin
   FNativeDatabase := ANativeDatabase;
+end;
+
+function TMongoDatabase.CreateCollection(const name: UTF8String;
+  ACapped: Boolean; AMaxSize, AMaxDocuments: Cardinal; AAutoIndexId,
+  AUsePowerOf2Sizes: Boolean): TMongoCollection;
+var
+  coll: Pointer;
+  options: IBsonBuffer;
+begin
+  options := NewBsonBuffer;
+  with options do
+  begin
+    append('capped', ACapped);
+    append('autoIndexId', AAutoIndexId);
+    append('usePowerOf2Sizes', AUsePowerOf2Sizes);
+    if AMaxSize > 0 then
+      append('size', AMaxSize);
+    if AMaxDocuments > 0 then
+      append('max', AMaxDocuments);
+  end;
+
+  coll := mongoc_database_create_collection(FNativeDatabase,
+                                            PAnsiChar(name),
+                                            NativeBsonOrNil(options.finish),
+                                            @FError);
+  if coll = nil then
+    raise EMongoDatabase.Create(@FError);
+
+  Result := TMongoCollection.Create(coll);
 end;
 
 destructor TMongoDatabase.Destroy;
