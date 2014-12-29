@@ -8,7 +8,36 @@ uses
 const
   LibMongoc_Dll = LibBson_DLL;
 
-//
+type
+(*typedef struct
+  {
+    bool                        is_initialized;
+    bool                        background;
+    bool                        unique;
+    const char                 *name;
+    bool                        drop_dups;
+    bool                        sparse;
+    int32_t                     expire_after_seconds;
+    int32_t                     v;
+    const bson_t               *weights;
+    const char                 *default_language;
+    const char                 *language_override;
+    mongoc_index_opt_geo_t     *geo_options;
+    mongoc_index_opt_storage_t *storage_options;
+    void                       *padding[6];
+  } mongoc_index_opt_t; *)
+  mongoc_index_opt_p = ^mongoc_index_opt_t;
+  mongoc_index_opt_t = record
+    is_initialized, background, unique: ByteBool;
+    name: PAnsiChar;
+    drop_dups, sparse: ByteBool;
+    expire_after_seconds, v: LongInt;
+    weights: bson_p;
+    default_language, language_override: PAnsiChar;
+    geo_options, storage_options: Pointer;
+    padding: array[0..5] of Pointer;
+  end;
+
 
 { void mongoc_init (void); }
   procedure mongoc_init;
@@ -163,6 +192,14 @@ const
                               const char      *name); }
   function mongoc_client_get_database(client: Pointer;
                                       const name: PAnsiChar): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_collection_t *
+  mongoc_client_get_collection (mongoc_client_t *client,
+                                const char      *db,
+                                const char      *collection); }
+  function mongoc_client_get_collection(client: Pointer;
+                                        const db, collection: PAnsiChar): Pointer;
   cdecl; external LibMongoc_Dll;
 
 
@@ -362,9 +399,241 @@ const
                                               const write_concern: Pointer);
   cdecl; external LibMongoc_Dll;
 
+{ mongoc_collection_t *
+  mongoc_database_get_collection (mongoc_database_t *database,
+                                  const char        *name); }
+  function mongoc_database_get_collection(database: Pointer;
+                                          const name: PAnsiChar): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+
+//
+// mongoc_collection_t
+//
+
+
+{ void
+  mongoc_collection_destroy (mongoc_collection_t *collection); }
+  procedure mongoc_collection_destroy(collection: Pointer);
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_command_simple (mongoc_collection_t       *collection,
+                                    const bson_t              *command,
+                                    const mongoc_read_prefs_t *read_prefs,
+                                    bson_t                    *reply,
+                                    bson_error_t              *error); }
+  function mongoc_collection_command_simple(collection: Pointer;
+                                            const command: bson_p;
+                                            const read_prefs: Pointer;
+                                            reply: bson_p;
+                                            error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ int64_t
+  mongoc_collection_count (mongoc_collection_t       *collection,
+                           mongoc_query_flags_t       flags,
+                           const bson_t              *query,
+                           int64_t                    skip,
+                           int64_t                    limit,
+                           const mongoc_read_prefs_t *read_prefs,
+                           bson_error_t              *error); }
+  function mongoc_collection_count(collection: Pointer;
+                                   flags: Integer;
+                                   const query: bson_p;
+                                   skip, limit: Int64;
+                                   const read_prefs: Pointer;
+                                   error: bson_error_p): Int64;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_create_index (mongoc_collection_t      *collection,
+                                  const bson_t             *keys,
+                                  const mongoc_index_opt_t *opt,
+                                  bson_error_t             *error); }
+  function mongoc_collection_create_index(collection: Pointer;
+                                          const keys: bson_p;
+                                          const opt: mongoc_index_opt_p;
+                                          error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_drop (mongoc_collection_t *collection,
+                          bson_error_t        *error); }
+  function mongoc_collection_drop(collection: Pointer;
+                                  error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_drop_index (mongoc_collection_t *collection,
+                                const char          *index_name,
+                                bson_error_t        *error); }
+  function mongoc_collection_drop_index(collection: Pointer;
+                                        const index_name: PAnsiChar;
+                                        error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_find_and_modify (mongoc_collection_t *collection,
+                                     const bson_t        *query,
+                                     const bson_t        *sort,
+                                     const bson_t        *update,
+                                     const bson_t        *fields,
+                                     bool                 _remove,
+                                     bool                 upsert,
+                                     bool                 _new,
+                                     bson_t              *reply,
+                                     bson_error_t        *error); }
+  function mongoc_collection_find_and_modify(collection: Pointer;
+                                             const query, sort, update, fields: bson_p;
+                                             _remove, upsert, _new: ByteBool;
+                                             reply: bson_p;
+                                             error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ const bson_t *
+  mongoc_collection_get_last_error (const mongoc_collection_t *collection); }
+  function mongoc_collection_get_last_error(const collection: Pointer): bson_p;
+  cdecl; external LibMongoc_Dll;
+
+
+{ const char *
+  mongoc_collection_get_name (mongoc_collection_t *collection); }
+  function mongoc_collection_get_name(collection: Pointer): PAnsiChar;
+  cdecl; external LibMongoc_Dll;
+
+{ const mongoc_read_prefs_t *
+  mongoc_collection_get_read_prefs (const mongoc_collection_t *collection); }
+  function mongoc_collection_get_read_prefs(const collection: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ const mongoc_write_concern_t *
+  mongoc_collection_get_write_concern (const mongoc_collection_t *collection); }
+  function mongoc_collection_get_write_concern(const collection: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_collection_set_read_prefs (mongoc_collection_t       *collection,
+                                    const mongoc_read_prefs_t *read_prefs); }
+  procedure mongoc_collection_set_read_prefs(collection: Pointer;
+                                             const read_prefs: Pointer);
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_collection_set_write_concern (mongoc_collection_t          *collection,
+                                       const mongoc_write_concern_t *write_concern); }
+  procedure mongoc_collection_set_write_concern(collection: Pointer;
+                                                const write_concern: Pointer);
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_insert (mongoc_collection_t          *collection,
+                            mongoc_insert_flags_t         flags,
+                            const bson_t                 *document,
+                            const mongoc_write_concern_t *write_concern,
+                            bson_error_t                 *error); }
+  function mongoc_collection_insert(collection: Pointer;
+                                    flags: Integer;
+                                    const document: bson_p;
+                                    const write_concern: Pointer;
+                                    error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_remove (mongoc_collection_t          *collection,
+                            mongoc_remove_flags_t         flags,
+                            const bson_t                 *selector,
+                            const mongoc_write_concern_t *write_concern,
+                            bson_error_t                 *error); }
+  function mongoc_collection_remove(collection: Pointer;
+                                    flags: Integer;
+                                    const selector: bson_p;
+                                    const write_concern: Pointer;
+                                    error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_rename (mongoc_collection_t *collection,
+                            const char          *new_db,
+                            const char          *new_name,
+                            bool                 drop_target_before_rename,
+                            bson_error_t        *error); }
+  function mongoc_collection_rename(collection: Pointer;
+                                    const new_db, new_name: PAnsiChar;
+                                    drop_target_before_rename: ByteBool;
+                                    error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_save (mongoc_collection_t          *collection,
+                          const bson_t                 *document,
+                          const mongoc_write_concern_t *write_concern,
+                          bson_error_t                 *error); }
+  function mongoc_collection_save(collection: Pointer;
+                                  const document: bson_p;
+                                  const write_concern: Pointer;
+                                  error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_stats (mongoc_collection_t *collection,
+                           const bson_t        *options,
+                           bson_t              *reply,
+                           bson_error_t        *error); }
+  function mongoc_collection_stats(collection: Pointer;
+                                  const options: bson_p;
+                                  reply: bson_p;
+                                  error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_update (mongoc_collection_t          *collection,
+                            mongoc_update_flags_t         flags,
+                            const bson_t                 *selector,
+                            const bson_t                 *update,
+                            const mongoc_write_concern_t *write_concern,
+                            bson_error_t                 *error); }
+  function mongoc_collection_update(collection: Pointer;
+                                    flags: Integer;
+                                    const selector, update: bson_p;
+                                    const write_concern: Pointer;
+                                    error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_collection_validate (mongoc_collection_t *collection,
+                              const bson_t        *options,
+                              bson_t              *reply,
+                              bson_error_t        *error); }
+  function mongoc_collection_validate(collection: Pointer;
+                                      const options: bson_p;
+                                      reply: bson_p;
+                                      error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+
+//
+// mongoc_index_opt_t
+//
+
+
+{ const mongoc_index_opt_t *
+  mongoc_index_opt_get_default (void) BSON_GNUC_CONST; }
+  function mongoc_index_opt_get_default: mongoc_index_opt_p;
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_index_opt_init (mongoc_index_opt_t *opt); }
+  procedure mongoc_index_opt_init(opt: mongoc_index_opt_p);
+  cdecl; external LibMongoc_Dll;
+
+
 implementation
 
 initialization
+  Assert(SizeOf(mongoc_index_opt_t) = {$IFDEF WIN64}120{$ELSE}64{$ENDIF},
+         'keep structure synced with native c implementation');
+
   mongoc_init;
 finalization
   mongoc_cleanup;

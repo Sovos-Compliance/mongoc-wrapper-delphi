@@ -57,6 +57,7 @@
     <DCCReference Include="..\src\uLibMongocAPI.pas" />
     <DCCReference Include="..\src\uMongo.pas" />
     <DCCReference Include="..\src\uMongoClient.pas" />
+    <DCCReference Include="..\src\uMongoCollection.pas" />
     <DCCReference Include="..\src\uMongoDatabase.pas" />
     <DCCReference Include="..\src\uMongoReadPrefs.pas" />
     <DCCReference Include="..\src\uMongoWriteConcern.pas" />
@@ -65,6 +66,7 @@
     <DCCReference Include="uMain.pas" />
     <DCCReference Include="uTestMongo.pas" />
     <DCCReference Include="uTestMongoClient.pas" />
+    <DCCReference Include="uTestMongoCollection.pas" />
     <DCCReference Include="uTestMongoDatabase.pas" />
   </ItemGroup>
 </Project>

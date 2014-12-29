@@ -25,6 +25,9 @@ type
     procedure SetReadPrefs(const APrefs: IMongoReadPrefs); virtual; abstract;
     function GetWriteConcern: IMongoWriteConcern; virtual; abstract;
     procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern); virtual; abstract;
+    function NativeReadPrefsOrNil(const APrefs: IMongoReadPrefs): Pointer;
+    function NativeWriteConcernOrNil(const AWriteConcern: IMongoWriteConcern): Pointer;
+    function NativeBsonOrNil(const ABson: IBson): bson_p;
   public
     property ReadPrefs: IMongoReadPrefs read GetReadPrefs write SetReadPrefs;
     property WriteConcern: IMongoWriteConcern read GetWriteConcern write SetWriteConcern;
@@ -57,6 +60,34 @@ begin
     Inc(i);
     item := PPAnsiChar(NativeInt(arr) + i * SizeOf(PAnsiChar))^;
   end;
+end;
+
+{ TMongoObject }
+
+function TMongoObject.NativeBsonOrNil(const ABson: IBson): bson_p;
+begin
+  if ABson <> nil then
+    Result := ABson.NativeBson
+  else
+    Result := nil;
+end;
+
+function TMongoObject.NativeReadPrefsOrNil(
+  const APrefs: IMongoReadPrefs): Pointer;
+begin
+  if APrefs <> nil then
+    Result := APrefs.NativeReadPrefs
+  else
+    Result := nil;
+end;
+
+function TMongoObject.NativeWriteConcernOrNil(
+  const AWriteConcern: IMongoWriteConcern): Pointer;
+begin
+  if WriteConcern <> nil then
+    Result := WriteConcern.NativeWriteConcern
+  else
+    Result := nil;
 end;
 
 end.

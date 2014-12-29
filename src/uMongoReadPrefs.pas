@@ -111,7 +111,7 @@ end;
 function TMongoReadPrefs.GetTags: IBson;
 begin
   if FTags = nil then
-    FTags := NewBson(mongoc_read_prefs_get_tags(FNativeReadPrefs), false);
+    FTags := NewBson(mongoc_read_prefs_get_tags(FNativeReadPrefs));
   Result := FTags;
 end;
 

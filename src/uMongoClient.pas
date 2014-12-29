@@ -4,14 +4,12 @@ interface
 
 uses
   SysUtils,
-  uMongo, uMongoReadPrefs, uMongoWriteConcern, uMongoDatabase,
-  MongoBson, LibBsonAPI, uDelphi5;
+  uMongo, uMongoReadPrefs, uMongoWriteConcern, uMongoDatabase, uMongoCollection,
+  MongoBson, uDelphi5;
 
 type
 
 { TODO:
-  mongoc_client_get_collection
-  mongoc_client_get_database
   mongoc_client_get_gridfs
   mongoc_client_get_uri
   mongoc_client_new_from_uri
@@ -39,6 +37,7 @@ type
     function GetDatabaseNames: TStringArray;
     function GetServerStatus(const AReadPrefs: IMongoReadPrefs = nil): IBson;
     function GetDatabase(const name: UTF8String): TMongoDatabase;
+    function GetCollection(const DbName, CollectionName: UTF8String): TMongoCollection;
     property MaxBsonSize: Longint read GetMaxBsonSize;
     property MaxMessageSize: Longint read GetMaxMessageSize;
   end;
@@ -46,7 +45,7 @@ type
 implementation
 
 uses
-  uLibMongocAPI;
+  uLibMongocAPI, LibBsonAPI;
 
 { TMongoClient }
 
@@ -76,6 +75,16 @@ begin
   bson_strfreev(names);
 end;
 
+function TMongoClient.GetCollection(const DbName,
+  CollectionName: UTF8String): TMongoCollection;
+var
+  native_coll: Pointer;
+begin
+  native_coll := mongoc_client_get_collection(FNativeClient, PAnsiChar(DbName),
+                                              PAnsiChar(CollectionName));
+  Result := TMongoCollection.Create(native_coll);
+end;
+
 function TMongoClient.GetDatabase(const name: UTF8String): TMongoDatabase;
 begin
   Result := TMongoDatabase.Create(mongoc_client_get_database(FNativeClient, PAnsiChar(name)));
@@ -99,16 +108,10 @@ begin
 end;
 
 function TMongoClient.GetServerStatus(const AReadPrefs: IMongoReadPrefs): IBson;
-var
-  read_prefs: Pointer;
 begin
-  if AReadPrefs <> nil then
-    read_prefs := AReadPrefs.NativeReadPrefs
-  else
-    read_prefs := nil;
-  Result := NewBson(bson_new, true);
-
-  if not mongoc_client_get_server_status(FNativeClient, read_prefs, Result.NativeBson, @FError) then
+  Result := NewBson;
+  if not mongoc_client_get_server_status(FNativeClient, NativeReadPrefsOrNil(AReadPrefs),
+                                         Result.NativeBson, @FError) then
     raise EMongoClient.Create(@FError);
 end;
 
@@ -121,19 +124,13 @@ end;
 
 function TMongoClient.RunCommand(const ADbName: UTF8String; const ACommand: IBson;
   const AReadPrefs: IMongoReadPrefs): IBson;
-var
-  read_prefs: Pointer;
 begin
   Assert(ACommand <> nil);
 
-  if AReadPrefs <> nil then
-    read_prefs := AReadPrefs.NativeReadPrefs
-  else
-    read_prefs := nil;
-  Result := NewBson(bson_new, true);
-
+  Result := NewBson;
   if not mongoc_client_command_simple(FNativeClient, PAnsiChar(ADbName), ACommand.NativeBson,
-                                  read_prefs, Result.NativeBson, @FError) then
+                                      NativeReadPrefsOrNil(AReadPrefs), Result.NativeBson,
+                                      @FError) then
     raise EMongoClient.Create(@FError);
 end;
 

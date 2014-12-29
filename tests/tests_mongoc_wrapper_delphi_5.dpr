@@ -24,7 +24,9 @@ uses
   uMongoClient in '..\src\uMongoClient.pas',
   uMongoReadPrefs in '..\src\uMongoReadPrefs.pas',
   uMongoWriteConcern in '..\src\uMongoWriteConcern.pas',
-  uTestMongoClient in 'uTestMongoClient.pas';
+  uTestMongoClient in 'uTestMongoClient.pas',
+  uMongoCollection in '..\src\uMongoCollection.pas',
+  uTestMongoCollection in 'uTestMongoCollection.pas';
 
 begin
   Main;

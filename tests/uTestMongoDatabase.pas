@@ -9,11 +9,8 @@ uses
 
 type
   TestMongoDatabase = class(TMongoTestCase)
-  private
-    FDatabase: TMongoDatabase;
   public
     procedure SetUp; override;
-    procedure TearDown; override;
   published
     procedure Drop_InvalidName;
     procedure AddUser;
@@ -146,15 +143,8 @@ end;
 procedure TestMongoDatabase.SetUp;
 begin
   inherited;
-  FDatabase := FClient.GetDatabase(TEST_DB);
   FDatabase.Drop;
   FDatabase.RemoveAllUsers;
-end;
-
-procedure TestMongoDatabase.TearDown;
-begin
-  FDatabase.Free;
-  inherited;
 end;
 
 initialization

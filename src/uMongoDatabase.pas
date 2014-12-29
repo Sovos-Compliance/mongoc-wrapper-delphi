@@ -8,8 +8,8 @@ interface
 }
 
 uses
-  LibBsonAPI, MongoBson, uDelphi5,
-  uMongo, uMongoReadPrefs, uMongoWriteConcern;
+  MongoBson, uDelphi5,
+  uMongo, uMongoReadPrefs, uMongoWriteConcern, uMongoCollection;
 
 type
   EMongoDatabase = class(EMongo);
@@ -36,6 +36,7 @@ type
     function HasCollection(const name: UTF8String): Boolean;
     procedure RemoveAllUsers;
     procedure RemoveUser(const name: UTF8String);
+    function GetCollection(const name: UTF8String): TMongoCollection;
     property NativeDatabase: Pointer read GetNativeDatabase;
     property Name: UTF8String read GetName;
   end;
@@ -43,7 +44,7 @@ type
 implementation
 
 uses
-  uLibMongocAPI;
+  uLibMongocAPI, LibBsonAPI;
 
 { TMongoDatabase }
 
@@ -81,6 +82,14 @@ procedure TMongoDatabase.Drop;
 begin
   if not mongoc_database_drop(FNativeDatabase, @FError) then
     raise EMongoDatabase.Create(@FError);
+end;
+
+function TMongoDatabase.GetCollection(const name: UTF8String): TMongoCollection;
+var
+  native_coll: Pointer;
+begin
+  native_coll := mongoc_database_get_collection(FNativeDatabase, PAnsiChar(name));
+  Result := TMongoCollection.Create(native_coll);
 end;
 
 function TMongoDatabase.GetCollectionNames: TStringArray;
@@ -139,20 +148,13 @@ end;
 
 function TMongoDatabase.RunCommand(const ACommand: IBson;
   const AReadPrefs: IMongoReadPrefs): IBson;
-var
-  read_prefs: Pointer;
 begin
   Assert(ACommand <> nil);
 
-  if AReadPrefs <> nil then
-    read_prefs := AReadPrefs.NativeReadPrefs
-  else
-    read_prefs := nil;
-  Result := NewBson(bson_new, true);
-
+  Result := NewBson;
   if not mongoc_database_command_simple(FNativeDatabase, ACommand.NativeBson,
-                                    read_prefs, Result.NativeBson,
-                                    @FError) then
+                                    NativeReadPrefsOrNil(AReadPrefs),
+                                    Result.NativeBson, @FError) then
     raise EMongoDatabase.Create(@FError);
 end;
 

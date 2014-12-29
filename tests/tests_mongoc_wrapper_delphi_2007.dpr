@@ -11,6 +11,7 @@ uses
   uMain in 'uMain.pas',
   uTestMongo in 'uTestMongo.pas',
   uTestMongoClient in 'uTestMongoClient.pas',
+  uTestMongoCollection in 'uTestMongoCollection.pas',
   uTestMongoDatabase in 'uTestMongoDatabase.pas',
   LibBsonAPI in '..\src\LibBsonAPI.pas',
   MongoBson in '..\src\MongoBson.pas',
@@ -20,6 +21,7 @@ uses
   uLibMongocAPI in '..\src\uLibMongocAPI.pas',
   uMongo in '..\src\uMongo.pas',
   uMongoClient in '..\src\uMongoClient.pas',
+  uMongoCollection in '..\src\uMongoCollection.pas',
   uMongoDatabase in '..\src\uMongoDatabase.pas',
   uMongoReadPrefs in '..\src\uMongoReadPrefs.pas',
   uMongoWriteConcern in '..\src\uMongoWriteConcern.pas';
