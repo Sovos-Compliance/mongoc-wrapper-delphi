@@ -7,6 +7,7 @@ uses
 
 const
   LibMongoc_Dll = LibBson_DLL;
+  BSON_HOST_NAME_MAX = 255;
 
 type
 (*typedef struct
@@ -36,6 +37,25 @@ type
     default_language, language_override: PAnsiChar;
     geo_options, storage_options: Pointer;
     padding: array[0..5] of Pointer;
+  end;
+
+(*struct _mongoc_host_list_t
+  {
+     mongoc_host_list_t *next;
+     char                host [BSON_HOST_NAME_MAX + 1];
+     char                host_and_port [BSON_HOST_NAME_MAX + 7];
+     uint16_t            port;
+     int                 family;
+     void               *padding [4];
+  }; *)
+  mongoc_host_list_p = ^mongoc_host_list_t;
+  mongoc_host_list_t = record
+    next: mongoc_host_list_p;
+    host: array[0..BSON_HOST_NAME_MAX] of AnsiChar;
+    host_and_port: array[0..BSON_HOST_NAME_MAX + 6] of AnsiChar;
+    port: Word;
+    family: Integer;
+    padding: array[0..3] of Pointer;
   end;
 
 
@@ -345,6 +365,22 @@ type
                                           error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
+{ mongoc_cursor_t *
+  mongoc_database_command (mongoc_database_t         *database,
+                           mongoc_query_flags_t       flags,
+                           uint32_t                   skip,
+                           uint32_t                   limit,
+                           uint32_t                   batch_size,
+                           const bson_t              *command,
+                           const bson_t              *fields,
+                           const mongoc_read_prefs_t *read_prefs); }
+  function mongoc_database_command(database: Pointer;
+                                   flags: Integer;
+                                   skip, limit, batch_size: LongWord;
+                                   const command, fields: bson_p;
+                                   const read_prefs: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
 { char **
   mongoc_database_get_collection_names (mongoc_database_t *database,
                                         bson_error_t      *error); }
@@ -406,6 +442,17 @@ type
                                           const name: PAnsiChar): Pointer;
   cdecl; external LibMongoc_Dll;
 
+{ mongoc_collection_t *
+  mongoc_database_create_collection (mongoc_database_t *database,
+                                     const char        *name,
+                                     const bson_t      *options,
+                                     bson_error_t      *error);  }
+  function mongoc_database_create_collection(database: Pointer;
+                                             const name: PAnsiChar;
+                                             const options: bson_p;
+                                             error: bson_error_p): Pointer;
+  cdecl; external LibMongoc_Dll;
+
 
 //
 // mongoc_collection_t
@@ -428,6 +475,53 @@ type
                                             const read_prefs: Pointer;
                                             reply: bson_p;
                                             error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_cursor_t *
+  mongoc_collection_command (mongoc_collection_t       *collection,
+                             mongoc_query_flags_t       flags,
+                             uint32_t                   skip,
+                             uint32_t                   limit,
+                             uint32_t                   batch_size,
+                             const bson_t              *command,
+                             const bson_t              *fields,
+                             const mongoc_read_prefs_t *read_prefs)
+  mongoc_collection_command; }
+  function mongoc_collection_command(collection: Pointer;
+                                     flags: Integer;
+                                     skip, limit, batch_size: LongWord;
+                                     const command, fields: bson_p;
+                                     const read_prefs: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_cursor_t *
+  mongoc_collection_aggregate (mongoc_collection_t       *collection,
+                               mongoc_query_flags_t       flags,
+                               const bson_t              *pipeline,
+                               const bson_t              *options,
+                               const mongoc_read_prefs_t *read_prefs)
+     BSON_GNUC_WARN_UNUSED_RESULT; }
+ function mongoc_collection_aggregate(collection: Pointer;
+                                      flags: Integer;
+                                      const pipeline, options: bson_p;
+                                      const read_prefs: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_cursor_t *
+  mongoc_collection_find (mongoc_collection_t       *collection,
+                          mongoc_query_flags_t       flags,
+                          uint32_t                   skip,
+                          uint32_t                   limit,
+                          uint32_t                   batch_size,
+                          const bson_t              *query,
+                          const bson_t              *fields,
+                          const mongoc_read_prefs_t *read_prefs)
+     BSON_GNUC_WARN_UNUSED_RESULT; }
+  function mongoc_collection_find(collection: Pointer;
+                                  flags: Integer;
+                                  skip, limit, batch_size: LongWord;
+                                  const query, fields: bson_p;
+                                  const read_prefs: Pointer): Pointer;
   cdecl; external LibMongoc_Dll;
 
 { int64_t
@@ -628,10 +722,61 @@ type
   cdecl; external LibMongoc_Dll;
 
 
+//
+// mongoc_cursor_t
+//
+
+
+{ void
+  mongoc_cursor_destroy (mongoc_cursor_t *cursor); }
+  procedure mongoc_cursor_destroy(cursor: Pointer);
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_cursor_t *
+  mongoc_cursor_clone (const mongoc_cursor_t *cursor) BSON_GNUC_WARN_UNUSED_RESULT; }
+  function mongoc_cursor_clone(const cursor: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ const bson_t *
+  mongoc_cursor_current (const mongoc_cursor_t *cursor); }
+  function mongoc_cursor_current(const cursor: Pointer): bson_p;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_cursor_error (mongoc_cursor_t *cursor,
+                       bson_error_t    *error); }
+  function mongoc_cursor_error(cursor: Pointer; error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_cursor_get_host (mongoc_cursor_t    *cursor,
+                          mongoc_host_list_t *host); }
+  procedure mongoc_cursor_get_host(cursor: Pointer; host: mongoc_host_list_p);
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_cursor_is_alive (const mongoc_cursor_t *cursor); }
+  function mongoc_cursor_is_alive(const cursor: Pointer): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_cursor_more (mongoc_cursor_t *cursor); }
+  function mongoc_cursor_more(cursor: Pointer): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_cursor_next (mongoc_cursor_t *cursor,
+                      const bson_t   **bson); }
+  function mongoc_cursor_next(cursor: Pointer; const bson: bson_pp): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+
 implementation
 
 initialization
   Assert(SizeOf(mongoc_index_opt_t) = {$IFDEF WIN64}120{$ELSE}64{$ENDIF},
+         'keep structure synced with native c implementation');
+  Assert(SizeOf(mongoc_host_list_t) = {$IFDEF WIN64}568{$ELSE}544{$ENDIF},
          'keep structure synced with native c implementation');
 
   mongoc_init;

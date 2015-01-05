@@ -2,10 +2,10 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{b849bf44-e134-4546-acad-d42e10916473}</ProjectGuid>
-    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
-    <DCC_DependencyCheckOutputName>..\..\..\bin\Win32\Release\tests_mongoc_wrapper_delphi_2007.exe</DCC_DependencyCheckOutputName>
+    <DCC_DependencyCheckOutputName>..\..\..\bin\Win32\Debug\tests_mongoc_wrapper_delphi_2007.exe</DCC_DependencyCheckOutputName>
     <MainSource>tests_mongoc_wrapper_delphi_2007.dpr</MainSource>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -58,6 +58,7 @@
     <DCCReference Include="..\src\uMongo.pas" />
     <DCCReference Include="..\src\uMongoClient.pas" />
     <DCCReference Include="..\src\uMongoCollection.pas" />
+    <DCCReference Include="..\src\uMongoCursor.pas" />
     <DCCReference Include="..\src\uMongoDatabase.pas" />
     <DCCReference Include="..\src\uMongoReadPrefs.pas" />
     <DCCReference Include="..\src\uMongoWriteConcern.pas" />
@@ -67,6 +68,7 @@
     <DCCReference Include="uTestMongo.pas" />
     <DCCReference Include="uTestMongoClient.pas" />
     <DCCReference Include="uTestMongoCollection.pas" />
+    <DCCReference Include="uTestMongoCursor.pas" />
     <DCCReference Include="uTestMongoDatabase.pas" />
   </ItemGroup>
 </Project>

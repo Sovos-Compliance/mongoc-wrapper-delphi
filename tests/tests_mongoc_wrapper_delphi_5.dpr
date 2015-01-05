@@ -26,7 +26,9 @@ uses
   uMongoWriteConcern in '..\src\uMongoWriteConcern.pas',
   uTestMongoClient in 'uTestMongoClient.pas',
   uMongoCollection in '..\src\uMongoCollection.pas',
-  uTestMongoCollection in 'uTestMongoCollection.pas';
+  uTestMongoCollection in 'uTestMongoCollection.pas',
+  uMongoCursor in '..\src\uMongoCursor.pas',
+  uTestMongoCursor in 'uTestMongoCursor.pas';
 
 begin
   Main;

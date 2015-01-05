@@ -120,6 +120,8 @@
         <DCCReference Include="uTestMongoDatabase.pas"/>
         <DCCReference Include="..\src\uMongoCollection.pas"/>
         <DCCReference Include="uTestMongoCollection.pas"/>
+        <DCCReference Include="..\src\uMongoCursor.pas"/>
+        <DCCReference Include="uTestMongoCursor.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

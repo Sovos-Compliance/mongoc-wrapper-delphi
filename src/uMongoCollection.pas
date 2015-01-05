@@ -4,16 +4,15 @@ interface
 
 { TODO:
   mongoc_collection_aggregate
-  mongoc_collection_command
   mongoc_collection_create_bulk_operation
-  mongoc_collection_find
   mongoc_collection_get_last_error
   mongoc_collection_keys_to_index_string
   mongoc_collection_validate
 }
 
 uses
-  uMongo, MongoBson, uMongoReadPrefs, uMongoWriteConcern, uDelphi5;
+  uMongo, MongoBson, uMongoReadPrefs, uMongoWriteConcern, uDelphi5,
+  uMongoCursor;
 
 const
   MONGOC_QUERY_NONE              = 0;
@@ -53,8 +52,25 @@ type
   public
     constructor Create(ANativeCollection: Pointer);
     destructor Destroy; override;
+    function Find(const AQuery: IBson = nil;
+                  ASkip: LongWord = 0; ALimit: LongWord = 0;
+                  ABatchSize: LongWord = 100;
+                  AFlags: Integer = MONGOC_QUERY_NONE;
+                  const AReadPrefs: IMongoReadPrefs = nil): TMongoCursor; overload;
+    function Find(const AQuery: IBson;
+                  AFields: array of UTF8String;
+                  ASkip: LongWord = 0; ALimit: LongWord = 0;
+                  ABatchSize: LongWord = 100;
+                  AFlags: Integer = MONGOC_QUERY_NONE;
+                  const AReadPrefs: IMongoReadPrefs = nil): TMongoCursor; overload;
     function RunCommand(const ACommand: IBson;
-                        const AReadPrefs: IMongoReadPrefs = nil): IBson;
+                        const AReadPrefs: IMongoReadPrefs = nil): IBson; overload;
+    function RunCommand(const ACommand: IBson;
+                        AFields: array of UTF8String;
+                        ASkip: LongWord = 0; ALimit: LongWord = 0;
+                        ABatchSize: LongWord = 100;
+                        AFlags: Integer = MONGOC_QUERY_NONE;
+                        const AReadPrefs: IMongoReadPrefs = nil): TMongoCursor; overload;
     function GetCount(const AQuery: IBson = nil;
                       ASkip: Int64 = 0; ALimit: Int64 = 0;
                       AReadPrefs: IMongoReadPrefs = nil;
@@ -113,12 +129,10 @@ procedure TMongoCollection.CreateIndex(const AKeys: array of UTF8String;
   AExpireAfterSeconds: Integer);
 var
   opt: mongoc_index_opt_t;
-  bkeys: IBsonBuffer;
-  i: Integer;
+  bkeys: IBson;
 begin
-  bkeys := NewBsonBuffer;
-  for i := Low(AKeys) to High(AKeys) do
-    bkeys.append(Akeys[i], 1);
+  Assert(Length(AKeys) > 0);
+  bkeys := ToBson(AKeys);
 
   mongoc_index_opt_init(@opt);
   with opt do
@@ -132,7 +146,7 @@ begin
     expire_after_seconds := AExpireAfterSeconds;
   end;
 
-  if not mongoc_collection_create_index(FNativeCollection, bkeys.finish.NativeBson,
+  if not mongoc_collection_create_index(FNativeCollection, bkeys.NativeBson,
                                         @opt, @FError) then
     raise EMongoCollection.Create(@FError);
 end;
@@ -164,27 +178,11 @@ end;
 function TMongoCollection.FindAndModify(const AQuery, AUpdate: IBson; ARemove,
   AUpsert, ANew: Boolean; const ASort, AFields: array of UTF8String): IBson;
 var
-  sortBuf, fieldsBuf: IBsonBuffer;
   sort, fields: IBson;
-  i: Integer;
 begin
   Result := NewBson;
-
-  if Length(ASort) > 0 then
-  begin
-    sortBuf := NewBsonBuffer;
-    for i := Low(ASort) to High(ASort) do
-      sortBuf.append(ASort[i], 1);
-    sort := sortBuf.finish;
-  end;
-
-  if Length(AFields) > 0 then
-  begin
-    fieldsBuf := NewBsonBuffer;
-    for i := Low(AFields) to High(AFields) do
-      fieldsBuf.append(AFields[i], 1);
-    fields := fieldsBuf.finish;
-  end;
+  sort := ToBson(ASort);
+  fields := ToBson(AFields);
 
   if not mongoc_collection_find_and_modify(FNativeCollection,
                                            NativeBsonOrNil(AQuery),
@@ -297,6 +295,23 @@ begin
 end;
 
 function TMongoCollection.RunCommand(const ACommand: IBson;
+  AFields: array of UTF8String; ASkip, ALimit, ABatchSize: LongWord;
+  AFlags: Integer; const AReadPrefs: IMongoReadPrefs): TMongoCursor;
+var
+  fields: IBson;
+begin
+  Assert(ACommand <> nil);
+
+  fields := ToBson(AFields);
+
+  Result := TMongoCursor.Create(mongoc_collection_command(FNativeCollection, AFlags,
+                                ASkip, ALimit, ABatchSize,
+                                ACommand.NativeBson,
+                                NativeBsonOrNil(fields),
+                                NativeReadPrefsOrNil(AReadPrefs)));
+end;
+
+function TMongoCollection.RunCommand(const ACommand: IBson;
   const AReadPrefs: IMongoReadPrefs): IBson;
 begin
   Assert(ACommand <> nil);
@@ -342,6 +357,40 @@ begin
                                 NativeWriteConcernOrNil(AWriteConcern),
                                 @FError) then
     raise EMongoCollection.Create(@FError);
+end;
+
+function TMongoCollection.Find(const AQuery: IBson;
+  AFields: array of UTF8String; ASkip, ALimit, ABatchSize: LongWord;
+  AFlags: Integer; const AReadPrefs: IMongoReadPrefs): TMongoCursor;
+var
+  fields, emptyBson: IBson;
+  query: bson_p;
+begin
+  fields := ToBson(AFields);
+  if AQuery = nil then
+  begin
+    emptyBson := NewBson;
+    query := emptyBson.NativeBson;
+  end
+  else
+    query := AQuery.NativeBson;
+
+
+  Result := TMongoCursor.Create(mongoc_collection_find(FNativeCollection, AFlags,
+                                ASkip, ALimit, ABatchSize,
+                                query,
+                                NativeBsonOrNil(fields),
+                                NativeReadPrefsOrNil(AReadPrefs)));
+end;
+
+function TMongoCollection.Find(const AQuery: IBson; ASkip, ALimit,
+  ABatchSize: LongWord; AFlags: Integer;
+  const AReadPrefs: IMongoReadPrefs): TMongoCursor;
+var
+  emptyArr: TStringArray;
+begin
+  SetLength(emptyArr, 0);
+  Result := Find(AQuery, emptyArr, ASkip, ALimit, ABatchSize, AFlags, AReadPrefs);
 end;
 
 function TMongoCollection.FindAndModify(const AQuery, AUpdate: IBson; AUpsert,

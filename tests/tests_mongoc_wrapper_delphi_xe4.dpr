@@ -26,7 +26,9 @@ uses
   uMongoDatabase in '..\src\uMongoDatabase.pas',
   uTestMongoDatabase in 'uTestMongoDatabase.pas',
   uMongoCollection in '..\src\uMongoCollection.pas',
-  uTestMongoCollection in 'uTestMongoCollection.pas';
+  uTestMongoCollection in 'uTestMongoCollection.pas',
+  uMongoCursor in '..\src\uMongoCursor.pas',
+  uTestMongoCursor in 'uTestMongoCursor.pas';
 
 begin
   Main;

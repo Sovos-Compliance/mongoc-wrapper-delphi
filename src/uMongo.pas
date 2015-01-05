@@ -28,6 +28,7 @@ type
     function NativeReadPrefsOrNil(const APrefs: IMongoReadPrefs): Pointer;
     function NativeWriteConcernOrNil(const AWriteConcern: IMongoWriteConcern): Pointer;
     function NativeBsonOrNil(const ABson: IBson): bson_p;
+    function ToBson(const arr: array of UTF8String): IBson;
   public
     property ReadPrefs: IMongoReadPrefs read GetReadPrefs write SetReadPrefs;
     property WriteConcern: IMongoWriteConcern read GetWriteConcern write SetWriteConcern;
@@ -88,6 +89,20 @@ begin
     Result := WriteConcern.NativeWriteConcern
   else
     Result := nil;
+end;
+
+function TMongoObject.ToBson(const arr: array of UTF8String): IBson;
+var
+  buf: IBsonBuffer;
+  i: Integer;
+begin
+  if Length(arr) > 0 then
+  begin
+    buf := NewBsonBuffer;
+    for i := Low(arr) to High(arr) do
+      buf.append(arr[i], 1);
+    Result := buf.finish;
+  end;
 end;
 
 end.
