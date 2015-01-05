@@ -863,130 +863,161 @@ type
 
 
 //
-// mongoc_gridfs_file_t
+// mongoc_gridfs_cnv_file_t
 //
 
 
+{ mongoc_gridfs_file_t *
+  mongoc_gridfs_create_cnv_file (mongoc_gridfs_t                *gridfs,
+                                 mongoc_gridfs_file_opt_t       *opt,
+                                 mongoc_gridfs_cnv_file_flags_t  flags); }
+  function mongoc_gridfs_create_cnv_file(gridfs: Pointer;
+                                         opt: mongoc_gridfs_file_opt_p;
+                                         flags: Integer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_gridfs_file_t *
+  mongoc_gridfs_find_one_cnv (mongoc_gridfs_t *gridfs,
+                              const bson_t    *query,
+                              bson_error_t    *error,
+                              mongoc_gridfs_cnv_file_flags_t  flags); }
+  function mongoc_gridfs_find_one_cnv(gridfs: Pointer; const query: bson_p;
+                                      error: bson_error_p;
+                                      flags: Integer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_gridfs_file_t *
+  mongoc_gridfs_find_one_cnv_by_filename (mongoc_gridfs_t *gridfs,
+                                          const char      *filename,
+                                          bson_error_t    *error,
+                                          mongoc_gridfs_cnv_file_flags_t  flags); }
+  function mongoc_gridfs_find_one_cnv_by_filename(gridfs: Pointer;
+                                                  filename: PAnsiChar;
+                                                  error: bson_error_p;
+                                                  flags: Integer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+
 { void
-  mongoc_gridfs_file_destroy (mongoc_gridfs_file_t *file); }
-  procedure mongoc_gridfs_file_destroy(afile: Pointer);
+  mongoc_gridfs_cnv_file_destroy (mongoc_gridfs_file_t *file); }
+  procedure mongoc_gridfs_cnv_file_destroy(afile: Pointer);
   cdecl; external LibMongoc_Dll;
 
 { bool
-  mongoc_gridfs_file_save (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_save(afile: Pointer): ByteBool;
+  mongoc_gridfs_cnv_file_save (mongoc_gridfs_file_t *file); }
+  function mongoc_gridfs_cnv_file_save(afile: Pointer): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { bool
-  mongoc_gridfs_file_error (mongoc_gridfs_file_t *file,
-                            bson_error_t         *error); }
-  function mongoc_gridfs_file_error(afile: Pointer;
-                                    error: bson_error_p): ByteBool;
+  mongoc_gridfs_cnv_file_error (mongoc_gridfs_file_t *file,
+                                bson_error_t         *error); }
+  function mongoc_gridfs_cnv_file_error(afile: Pointer;
+                                        error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
 { ssize_t
-  mongoc_gridfs_file_writev (mongoc_gridfs_file_t *file,
-                             mongoc_iovec_t       *iov,
-                             size_t                iovcnt,
-                             uint32_t              timeout_msec); }
-  function mongoc_gridfs_file_writev(afile: Pointer;
-                                     iov: mongoc_iovec_p;
-                                     iovcnt: size_t;
-                                     timeout_msec: LongWord): ssize_t;
+  mongoc_gridfs_cnv_file_writev (mongoc_gridfs_file_t *file,
+                                 mongoc_iovec_t       *iov,
+                                 size_t                iovcnt,
+                                 uint32_t              timeout_msec); }
+  function mongoc_gridfs_cnv_file_writev(afile: Pointer;
+                                         iov: mongoc_iovec_p;
+                                         iovcnt: size_t;
+                                         timeout_msec: LongWord): ssize_t;
   cdecl; external LibMongoc_Dll;
 
 { ssize_t
-  mongoc_gridfs_file_readv (mongoc_gridfs_file_t *file,
-                            mongoc_iovec_t       *iov,
-                            size_t                iovcnt,
-                            size_t                min_bytes,
-                            uint32_t              timeout_msec); }
-  function mongoc_gridfs_file_readv(afile: Pointer;
-                                    iov: mongoc_iovec_p;
-                                    iovcnt, min_bytes: size_t;
-                                    timeout_msec: LongWord): ssize_t;
+  mongoc_gridfs_cnv_file_readv (mongoc_gridfs_file_t *file,
+                                mongoc_iovec_t       *iov,
+                                size_t                iovcnt,
+                                size_t                min_bytes,
+                                uint32_t              timeout_msec); }
+  function mongoc_gridfs_cnv_file_readv(afile: Pointer;
+                                        iov: mongoc_iovec_p;
+                                        iovcnt, min_bytes: size_t;
+                                        timeout_msec: LongWord): ssize_t;
   cdecl; external LibMongoc_Dll;
 
 { int
-  mongoc_gridfs_file_seek (mongoc_gridfs_file_t *file,
-                           uint64_t              delta,
-                           int                   whence); }
-  function mongoc_gridfs_file_seek(afile: Pointer;
-                                   delta: UInt64;
-                                   whence: Integer): Integer;
+  mongoc_gridfs_cnv_file_seek (mongoc_gridfs_file_t *file,
+                               uint64_t              delta,
+                               int                   whence); }
+  function mongoc_gridfs_cnv_file_seek(afile: Pointer;
+                                       delta: UInt64;
+                                       whence: Integer): Integer;
   cdecl; external LibMongoc_Dll;
 
 { uint64_t
-  mongoc_gridfs_file_tell (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_tell(afile: Pointer): UInt64;
+  mongoc_gridfs_cnv_file_tell (mongoc_gridfs_file_t *file); }
+  function mongoc_gridfs_cnv_file_tell(afile: Pointer): UInt64;
   cdecl; external LibMongoc_Dll;
 
 { const char *
-  mongoc_gridfs_file_get_filename (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_filename(afile: Pointer): PAnsiChar;
+  mongoc_gridfs_cnv_file_get_filename (mongoc_gridfs_file_t *file); }
+  function mongoc_gridfs_cnv_file_get_filename(afile: Pointer): PAnsiChar;
   cdecl; external LibMongoc_Dll;
 
 { int64_t
-  mongoc_gridfs_file_get_length (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_length(afile: Pointer): Int64;
+  mongoc_gridfs_cnv_file_get_length (mongoc_gridfs_file_t *file); }
+  function mongoc_gridfs_cnv_file_get_length(afile: Pointer): Int64;
   cdecl; external LibMongoc_Dll;
 
 { int32_t
-  mongoc_gridfs_file_get_chunk_size (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_chunk_size(afile: Pointer): LongInt;
+  mongoc_gridfs_cnv_file_get_chunk_size (mongoc_gridfs_file_t *file); }
+  function mongoc_gridfs_cnv_file_get_chunk_size(afile: Pointer): LongInt;
   cdecl; external LibMongoc_Dll;
 
 { const char *
   mongoc_gridfs_file_get_content_type (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_content_type(afile: Pointer): PAnsiChar;
+  function mongoc_gridfs_cnv_file_get_content_type(afile: Pointer): PAnsiChar;
   cdecl; external LibMongoc_Dll;
 
 { const bson_t *
   mongoc_gridfs_file_get_aliases (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_aliases(afile: Pointer): bson_p;
+  function mongoc_gridfs_cnv_file_get_aliases(afile: Pointer): bson_p;
   cdecl; external LibMongoc_Dll;
 
 { const bson_t *
   mongoc_gridfs_file_get_metadata (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_metadata(afile: Pointer): bson_p;
+  function mongoc_gridfs_cnv_file_get_metadata(afile: Pointer): bson_p;
   cdecl; external LibMongoc_Dll;
 
 { const char *
   mongoc_gridfs_file_get_md5 (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_md5(afile: Pointer): PAnsiChar;
+  function mongoc_gridfs_cnv_file_get_md5(afile: Pointer): PAnsiChar;
   cdecl; external LibMongoc_Dll;
 
 { int64_t
   mongoc_gridfs_file_get_upload_date (mongoc_gridfs_file_t *file); }
-  function mongoc_gridfs_file_get_upload_date(afile: Pointer): Int64;
+  function mongoc_gridfs_cnv_file_get_upload_date(afile: Pointer): Int64;
   cdecl; external LibMongoc_Dll;
 
 { void
-  mongoc_gridfs_file_set_content_type (mongoc_gridfs_file_t *file,
-                                       const char           *content_type); }
-  procedure mongoc_gridfs_file_set_content_type(afile: Pointer;
-                                                const content_type: PAnsiChar);
+  mongoc_gridfs_cnv_file_set_content_type (mongoc_gridfs_file_t *file,
+                                           const char           *content_type); }
+  procedure mongoc_gridfs_cnv_file_set_content_type(afile: Pointer;
+                                                    const content_type: PAnsiChar);
   cdecl; external LibMongoc_Dll;
 
  { void
-  mongoc_gridfs_file_set_filename (mongoc_gridfs_file_t *file,
-                                   const char           *filename); }
-  procedure mongoc_gridfs_file_set_filename(afile: Pointer;
-                                            const filename: PAnsiChar);
+  mongoc_gridfs_cnv_file_set_filename (mongoc_gridfs_file_t *file,
+                                      const char           *filename); }
+  procedure mongoc_gridfs_cnv_file_set_filename(afile: Pointer;
+                                                const filename: PAnsiChar);
   cdecl; external LibMongoc_Dll;
 
 { void
-  mongoc_gridfs_file_set_md5 (mongoc_gridfs_file_t *file,
-                              const char           *md5); }
-  procedure mongoc_gridfs_file_set_md5(afile: Pointer;
-                                       const md5: PAnsiChar);
+  mongoc_gridfs_cnv_file_set_md5 (mongoc_gridfs_file_t *file,
+                                  const char           *md5); }
+  procedure mongoc_gridfs_cnv_file_set_md5(afile: Pointer;
+                                           const md5: PAnsiChar);
   cdecl; external LibMongoc_Dll;
 
 { void
-  mongoc_gridfs_file_set_metadata (mongoc_gridfs_file_t *file,
-                                   const bson_t         *metadata); }
-  procedure mongoc_gridfs_file_set_metadata(afile: Pointer;
-                                            const metadata: bson_p);
+  mongoc_gridfs_cnv_file_set_metadata (mongoc_gridfs_file_t *file,
+                                       const bson_t         *metadata); }
+  procedure mongoc_gridfs_cnv_file_set_metadata(afile: Pointer;
+                                                const metadata: bson_p);
   cdecl; external LibMongoc_Dll;
 
 implementation
