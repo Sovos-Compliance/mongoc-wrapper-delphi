@@ -10,7 +10,7 @@ interface
 {$IFNDEF DELPHI2007}
 
 uses
-  Windows, TypInfo;
+  Windows, TypInfo, Classes;
 
 type
   UTF8String = AnsiString;
@@ -18,8 +18,15 @@ type
   PPAnsiChar = ^PAnsiChar;
   PCardinal = ^Cardinal;
   PLongWord = ^LongWord;
+  NativeInt = LongInt;
+  NativeUInt = LongWord;
+  PByte = ^Byte;
 
 const
+  soBeginning = soFromBeginning;
+  soCurrent = soFromCurrent;
+  soEnd = soFromEnd;
+
   MinDateTime: TDateTime = -657434.0;      { 01/01/0100 12:00:00.000 AM }
   MaxDateTime: TDateTime =  2958465.99999; { 12/31/9999 11:59:59.999 PM }
 

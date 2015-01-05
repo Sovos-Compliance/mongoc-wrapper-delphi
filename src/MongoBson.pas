@@ -307,7 +307,8 @@ type
     function next: Boolean;
     { Get an TBsonIterator pointing to the first field of a subobject or array.
       kind() must be bsonOBJECT or bsonARRAY. }
-    function subiterator: IBsonIterator;
+    function subiterator: IBsonIterator; overload;
+    function subiterator(const dotkey: UTF8String): IBsonIterator; overload;
 
     function GetAsInt64: Int64;
     function GetAsUTF8String : UTF8String;
@@ -350,6 +351,12 @@ type
     property AsRegex: IBsonRegex read GetAsRegex;
     property AsTimestamp: IBsonTimestamp read GetAsTimestamp;
     property Value: Variant read GetAsVariant;
+  end;
+
+  bson_error_p = ^bson_error_t;
+  bson_error_t = packed record
+    domain, code: LongWord;
+    message: array [0..503] of AnsiChar;
   end;
 
   bson_p = ^bson_t;
@@ -455,9 +462,10 @@ function NewBsonTimestamp(atime, aincrement: LongWord): IBsonTimestamp; overload
   field. }
 function NewBsonTimestamp(i : IBsonIterator): IBsonTimestamp; overload;
 
+function NewBson: IBson; overload;
 function NewBson(const json: UTF8String): IBson; overload;
 function NewBson(const AData: PByte; len: Cardinal): IBson; overload;
-function NewBson(const ANativeBson: bson_p; AOwnsNativeBson: Boolean): IBson; overload;
+function NewBson(ANativeBson: bson_p): IBson; overload;
 function NewBsonCopy(const b: IBson): IBson;
 
 {$IFDEF DELPHIXE2}
@@ -557,15 +565,17 @@ type
         BSonType: TBsonType);
     procedure prepareArrayIterator(var i: IBsonIterator; var j, count: Integer;
         BSonType: TBsonType; const ATypeErrorMsg: UTF8String);
+    constructor Create; overload;
   public
-    constructor Create(const it: bson_iter_t);
+    constructor Create(const bson: IBson); overload;
     function Find(const Name: UTF8String): Boolean;
     function getHandle: Pointer;
     function kind: TBsonType;
     function key: UTF8String;
     function next: Boolean;
     function GetAsVariant: Variant;
-    function subiterator: IBsonIterator;
+    function subiterator: IBsonIterator; overload;
+    function subiterator(const dotkey: UTF8String): IBsonIterator; overload;
     function getAsInt64: Int64;
     function GetAsUTF8String: UTF8String;
     function GetAsInteger: LongInt;
@@ -698,7 +708,7 @@ type
     FNativeBson: bson_p;
     FOwnsNativeBson: Boolean;
   public
-    constructor Create(const ANativeBson: bson_p; AOwnsNativeBson: Boolean); overload;
+    constructor Create(ANativeBson: bson_p; AOwnsNativeBson: Boolean); overload;
     constructor Create(const AData: PByte; len: Cardinal); overload;
     constructor Create(json: UTF8String); overload;
     constructor Create(const b: IBson); overload;
@@ -794,12 +804,6 @@ end;
 
 { TBsonIterator }
 
-constructor TBsonIterator.Create(const it: bson_iter_t);
-begin
-  inherited Create;
-  FNativeIter := it;
-end;
-
 function TBsonIterator.Find(const Name: UTF8String): Boolean;
 begin
   while next do
@@ -818,7 +822,7 @@ end;
 
 function TBsonIterator.GetAsUTF8String: UTF8String;
 begin
-  Result := UTF8String(bson_iter_utf8(@FNativeIter, 0));
+  Result := UTF8String(bson_iter_utf8(@FNativeIter, nil));
 end;
 
 function TBsonIterator.GetAsInteger: LongInt;
@@ -923,12 +927,10 @@ begin
 end;
 
 function TBsonIterator.subiterator: IBsonIterator;
-var
-  it: bson_iter_t;
 begin
-  if not bson_iter_recurse(@FNativeIter, @it) then
+  Result := TBsonIterator.Create;
+  if not bson_iter_recurse(@FNativeIter, Result.Handle) then
     raise EBson.Create('bson_iter_recurse failed');
-  Result := TBsonIterator.Create(it);
 end;
 
 function TBsonIterator.AsIntegerArray: TIntegerArray;
@@ -959,6 +961,17 @@ begin
   prepareArrayIterator(i, j, count, BSON_TYPE_UTF8, UTF8String(SArrayComponentIsNotAString));
   SetLength(Result, Count);
   iterateAndFillArray(i, Result, j, BSON_TYPE_UTF8);
+end;
+
+constructor TBsonIterator.Create;
+begin
+
+end;
+
+constructor TBsonIterator.Create(const bson: IBson);
+begin
+  if not bson_iter_init(@FNativeIter, bson.NativeBson) then
+    raise EBson.Create('Invalid bson', E_TBsonHandleIsNil);
 end;
 
 function TBsonIterator.AsBooleanArray: TBooleanArray;
@@ -1007,6 +1020,13 @@ begin
   end;
   i := subiterator;
   j := 0;
+end;
+
+function TBsonIterator.subiterator(const dotkey: UTF8String): IBsonIterator;
+begin
+  Result := TBsonIterator.Create;
+  if not bson_iter_find_descendant(@FNativeIter, PAnsiChar(dotkey), Result.Handle) then
+    Result := nil;
 end;
 
 { TBsonBuffer }
@@ -1341,7 +1361,7 @@ var
         begin
           BackupStack(BSON_TYPE_ARRAY);
           Result := startArray(Fld);
-          CurArrayIndex := -1; // CurArrayIndex will be incremented when this function returns
+          CurArrayIndex := 0;
         end
       else if def[i].VObject = End_Array then
         begin
@@ -1503,7 +1523,7 @@ end;
 
 { TBson }
 
-constructor TBson.Create(const ANativeBson: bson_p; AOwnsNativeBson: Boolean);
+constructor TBson.Create(ANativeBson: bson_p; AOwnsNativeBson: Boolean);
 begin
   inherited Create;
   FNativeBson := ANativeBson;
@@ -1565,12 +1585,8 @@ begin
 end;
 
 function TBson.iterator: IBsonIterator;
-var
-  it: bson_iter_t;
 begin
-  if not bson_iter_init(@it, FNativeBson) then
-    raise EBson.Create('bson_iter_init Failed');
-  Result := TBsonIterator.Create(it);
+  Result := TBsonIterator.Create(Self);
 end;
 
 function TBson.size: LongWord;
@@ -1579,13 +1595,15 @@ begin
 end;
 
 function TBson.find(const Name: UTF8String): IBsonIterator;
-var
-  it: bson_iter_t;
 begin
-  if not bson_iter_init_find(@it, FNativeBson, PAnsiChar(Name)) then
-    Result := nil
+  Result := TBsonIterator.Create(Self);
+  if Pos('.', Name) = 0 then
+  begin
+    if not Result.Find(Name) then
+      Result := nil;
+  end
   else
-    Result := TBsonIterator.Create(it);
+    Result := Result.subiterator(Name);
 end;
 
 function TBson.asJson: UTF8String;
@@ -1876,6 +1894,11 @@ begin
   Result := TBsonBuffer.Create;
 end;
 
+function NewBson: IBson;
+begin
+  Result := TBson.Create(bson_new, true);
+end;
+
 function NewBson(const json: UTF8String): IBson;
 begin
   Result := TBson.Create(json);
@@ -1886,9 +1909,9 @@ begin
   Result := TBson.Create(AData, len);
 end;
 
-function NewBson(const ANativeBson: bson_p; AOwnsNativeBson: Boolean): IBson;
+function NewBson(ANativeBson: bson_p): IBson;
 begin
-  Result := TBson.Create(ANativeBson, AOwnsNativeBson);
+  Result := TBson.Create(ANativeBson, false);
 end;
 
 var

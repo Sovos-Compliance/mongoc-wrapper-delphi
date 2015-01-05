@@ -4,15 +4,13 @@ interface
 
 uses
   SysUtils,
-  uMongo, uMongoReadPrefs, uMongoWriteConcern,
-  MongoBson, LibBsonAPI;
+  uMongo, uMongoReadPrefs, uMongoWriteConcern, uMongoDatabase, uMongoCollection,
+  uMongoGridfs,
+  MongoBson, uDelphi5;
 
 type
 
 { TODO:
-  mongoc_client_get_collection
-  mongoc_client_get_database
-  mongoc_client_get_gridfs
   mongoc_client_get_uri
   mongoc_client_new_from_uri
   mongoc_client_set_ssl_opts
@@ -21,42 +19,41 @@ type
 
   EMongoClient = class(EMongo);
 
-  TMongoClient = class
+  TMongoClient = class(TMongoReadPrefsWriteConcernObject)
   private
     FNativeClient: Pointer;
-    FError: bson_error_t;
-    FCachedReadPrefs: IMongoReadPrefs;
-    FCachedMongoWriteConcern: IMongoWriteConcern;
     function GetMaxBsonSize: Longint;
     function GetMaxMessageSize: Longint;
-    function GetReadPrefs: IMongoReadPrefs;
-    procedure SetReadPrefs(const APrefs: IMongoReadPrefs);
-    function GetWriteConcern: IMongoWriteConcern;
-    procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern);
+  protected
+    function GetReadPrefs: IMongoReadPrefs; override;
+    procedure SetReadPrefs(const APrefs: IMongoReadPrefs); override;
+    function GetWriteConcern: IMongoWriteConcern; override;
+    procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern); override;
   public
     constructor Create(const uri_string: UTF8String);
     destructor Destroy; override;
     function RunCommand(const ADbName: UTF8String; const ACommand: IBson;
                         const AReadPrefs: IMongoReadPrefs): IBson;
-    function GetCollectionNames: TStringArray;
-    function GetServerStatus: IBson;
+    function GetDatabaseNames: TStringArray;
+    function GetServerStatus(const AReadPrefs: IMongoReadPrefs = nil): IBson;
+    function GetDatabase(const name: UTF8String): TMongoDatabase;
+    function GetCollection(const DbName, CollectionName: UTF8String): TMongoCollection;
+    function GetGridfs(const ADbName: UTF8String;
+                       const APrefix: UTF8String = ''): TMongoGridfs;
     property MaxBsonSize: Longint read GetMaxBsonSize;
     property MaxMessageSize: Longint read GetMaxMessageSize;
-    property ReadPrefs: IMongoReadPrefs read GetReadPrefs write SetReadPrefs;
-    property WriteConcern: IMongoWriteConcern read GetWriteConcern write SetWriteConcern;
   end;
 
 implementation
 
 uses
-  uLibMongocAPI;
+  uLibMongocAPI, LibBsonAPI;
 
 { TMongoClient }
 
 constructor TMongoClient.Create(const uri_string: UTF8String);
 begin
-  FCachedReadPrefs := nil;
-  FCachedMongoWriteConcern := nil;
+
   FNativeClient := mongoc_client_new(PAnsiChar(uri_string));
   if FNativeClient = nil then
     raise EMongoClient.Create('Uri string is invalid');
@@ -68,26 +65,50 @@ begin
   inherited;
 end;
 
-function TMongoClient.GetCollectionNames: TStringArray;
+function TMongoClient.GetDatabaseNames: TStringArray;
 var
   names: PPAnsiChar;
-  name: PAnsiChar;
-  i: Integer;
 begin
   names := mongoc_client_get_database_names(FNativeClient, @FError);
   if names = nil then
     raise EMongoClient.Create(@FError);
 
-  i := 0;
-  name := names^;
-  while name <> nil do
-  begin
-    SetLength(Result, i + 1);
-    Result[i] := UTF8String(name);
-    Inc(i);
-    name := PPAnsiChar(NativeInt(names) + i * SizeOf(PAnsiChar))^;
-  end;
+  Result := PPAnsiCharToUTF8StringStringArray(names);
   bson_strfreev(names);
+end;
+
+function TMongoClient.GetGridfs(const ADbName,
+  APrefix: UTF8String): TMongoGridfs;
+var
+  prefix: PAnsiChar;
+  nativeGridfs: Pointer;
+begin
+  if APrefix <> '' then
+    prefix := PAnsiChar(APrefix)
+  else
+    prefix := nil;
+
+  nativeGridfs := mongoc_client_get_gridfs(FNativeClient, PAnsiChar(ADbName),
+                                           prefix, @FError);
+  if nativeGridfs = nil then
+    raise EMongoClient.Create(@FError);
+
+  Result := TMongoGridfs.Create(nativeGridfs);
+end;
+
+function TMongoClient.GetCollection(const DbName,
+  CollectionName: UTF8String): TMongoCollection;
+var
+  native_coll: Pointer;
+begin
+  native_coll := mongoc_client_get_collection(FNativeClient, PAnsiChar(DbName),
+                                              PAnsiChar(CollectionName));
+  Result := TMongoCollection.Create(native_coll);
+end;
+
+function TMongoClient.GetDatabase(const name: UTF8String): TMongoDatabase;
+begin
+  Result := TMongoDatabase.Create(mongoc_client_get_database(FNativeClient, PAnsiChar(name)));
 end;
 
 function TMongoClient.GetMaxBsonSize: Longint;
@@ -107,10 +128,11 @@ begin
   Result := FCachedReadPrefs;
 end;
 
-function TMongoClient.GetServerStatus: IBson;
+function TMongoClient.GetServerStatus(const AReadPrefs: IMongoReadPrefs): IBson;
 begin
-  Result := NewBson(bson_new, true);
-  if mongoc_client_get_server_status(FNativeClient, nil, Result.NativeBson, @FError) = 0 then
+  Result := NewBson;
+  if not mongoc_client_get_server_status(FNativeClient, NativeReadPrefsOrNil(AReadPrefs),
+                                         Result.NativeBson, @FError) then
     raise EMongoClient.Create(@FError);
 end;
 
@@ -123,19 +145,13 @@ end;
 
 function TMongoClient.RunCommand(const ADbName: UTF8String; const ACommand: IBson;
   const AReadPrefs: IMongoReadPrefs): IBson;
-var
-  read_prefs: Pointer;
 begin
   Assert(ACommand <> nil);
 
-  if AReadPrefs <> nil then
-    read_prefs := AReadPrefs.NativeReadPrefs
-  else
-    read_prefs := nil;
-  Result := NewBson(bson_new, true);
-
-  if mongoc_client_command_simple(FNativeClient, PAnsiChar(ADbName), ACommand.NativeBson,
-                                  read_prefs, Result.NativeBson, @FError) = 0 then
+  Result := NewBson;
+  if not mongoc_client_command_simple(FNativeClient, PAnsiChar(ADbName), ACommand.NativeBson,
+                                      NativeReadPrefsOrNil(AReadPrefs), Result.NativeBson,
+                                      @FError) then
     raise EMongoClient.Create(@FError);
 end;
 

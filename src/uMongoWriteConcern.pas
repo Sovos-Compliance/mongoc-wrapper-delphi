@@ -2,14 +2,18 @@ unit uMongoWriteConcern;
 
 interface
 
+uses
+  uDelphi5;
+
+const
+  MONGOC_WRITE_CONCERN_W_UNACKNOWLEDGED =  0;
+  MONGOC_WRITE_CONCERN_W_IGNORED = -1;
+  MONGOC_WRITE_CONCERN_W_DEFAULT = -2;
+  MONGOC_WRITE_CONCERN_W_MAJORITY = -3;
+  MONGOC_WRITE_CONCERN_W_TAG = -4;
+
 type
-  TMongoWriteConcernW = (
-    UNACKNOWLEDGED =  0,
-    ERRORS_IGNORED = -1,
-    DEFAULT        = -2,
-    MAJORITY       = -3,
-    TAG            = -4
-  );
+  TMongoWriteConcernW = LongInt; // see MONGOC_WRITE_CONCERN_W_* consts
 
   IMongoWriteConcern = interface
     ['{52ce95f7-6968-46e1-9758-d4947376a5f6}']
@@ -104,12 +108,12 @@ end;
 
 function TMongoWriteConcern.GetFsync: Boolean;
 begin
-  Result := mongoc_write_concern_get_fsync(FNativeWriteConcern) <> 0;
+  Result := mongoc_write_concern_get_fsync(FNativeWriteConcern);
 end;
 
 function TMongoWriteConcern.GetJournal: Boolean;
 begin
-  Result := mongoc_write_concern_get_journal(FNativeWriteConcern) <> 0;
+  Result := mongoc_write_concern_get_journal(FNativeWriteConcern);
 end;
 
 function TMongoWriteConcern.GetNativeWriteConcern: Pointer;
@@ -124,7 +128,7 @@ end;
 
 function TMongoWriteConcern.GetWMajority: Boolean;
 begin
-  Result := mongoc_write_concern_get_wmajority(FNativeWriteConcern) <> 0;
+  Result := mongoc_write_concern_get_wmajority(FNativeWriteConcern);
 end;
 
 function TMongoWriteConcern.GetWTag: UTF8String;
@@ -139,12 +143,12 @@ end;
 
 procedure TMongoWriteConcern.SetFsync(AFsync: Boolean);
 begin
-  mongoc_write_concern_set_fsync(FNativeWriteConcern, Byte(AFsync));
+  mongoc_write_concern_set_fsync(FNativeWriteConcern, AFsync);
 end;
 
 procedure TMongoWriteConcern.SetJournal(AJournal: Boolean);
 begin
-  mongoc_write_concern_set_journal(FNativeWriteConcern, Byte(AJournal));
+  mongoc_write_concern_set_journal(FNativeWriteConcern, AJournal);
 end;
 
 procedure TMongoWriteConcern.SetW(AW: TMongoWriteConcernW);
