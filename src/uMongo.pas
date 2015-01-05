@@ -4,7 +4,6 @@ interface
 
 uses
   SysUtils,
-  LibBsonAPI,
   uDelphi5,
   MongoBson, uMongoWriteConcern, uMongoReadPrefs;
 
@@ -16,7 +15,15 @@ type
   {  This class is base for other mongo classes: TMongoClient, TMongoDatabase, TMongoCollection
      It contains similar functionality to avoid copypast and caching objects
   }
-  TMongoObject = class
+  TMongoObject = class(TInterfacedObject)
+  protected
+    class function NativeReadPrefsOrNil(const APrefs: IMongoReadPrefs): Pointer;
+    class function NativeWriteConcernOrNil(const AWriteConcern: IMongoWriteConcern): Pointer;
+    class function NativeBsonOrNil(const ABson: IBson): bson_p;
+    class function ToBson(const arr: array of UTF8String): IBson;
+  end;
+
+  TMongoReadPrefsWriteConcernObject = class(TMongoObject)
   protected
     FCachedReadPrefs: IMongoReadPrefs;
     FCachedMongoWriteConcern: IMongoWriteConcern;
@@ -25,10 +32,6 @@ type
     procedure SetReadPrefs(const APrefs: IMongoReadPrefs); virtual; abstract;
     function GetWriteConcern: IMongoWriteConcern; virtual; abstract;
     procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern); virtual; abstract;
-    function NativeReadPrefsOrNil(const APrefs: IMongoReadPrefs): Pointer;
-    function NativeWriteConcernOrNil(const AWriteConcern: IMongoWriteConcern): Pointer;
-    function NativeBsonOrNil(const ABson: IBson): bson_p;
-    function ToBson(const arr: array of UTF8String): IBson;
   public
     property ReadPrefs: IMongoReadPrefs read GetReadPrefs write SetReadPrefs;
     property WriteConcern: IMongoWriteConcern read GetWriteConcern write SetWriteConcern;
@@ -65,7 +68,7 @@ end;
 
 { TMongoObject }
 
-function TMongoObject.NativeBsonOrNil(const ABson: IBson): bson_p;
+class function TMongoObject.NativeBsonOrNil(const ABson: IBson): bson_p;
 begin
   if ABson <> nil then
     Result := ABson.NativeBson
@@ -73,7 +76,7 @@ begin
     Result := nil;
 end;
 
-function TMongoObject.NativeReadPrefsOrNil(
+class function TMongoObject.NativeReadPrefsOrNil(
   const APrefs: IMongoReadPrefs): Pointer;
 begin
   if APrefs <> nil then
@@ -82,16 +85,16 @@ begin
     Result := nil;
 end;
 
-function TMongoObject.NativeWriteConcernOrNil(
+class function TMongoObject.NativeWriteConcernOrNil(
   const AWriteConcern: IMongoWriteConcern): Pointer;
 begin
-  if WriteConcern <> nil then
-    Result := WriteConcern.NativeWriteConcern
+  if AWriteConcern <> nil then
+    Result := AWriteConcern.NativeWriteConcern
   else
     Result := nil;
 end;
 
-function TMongoObject.ToBson(const arr: array of UTF8String): IBson;
+class function TMongoObject.ToBson(const arr: array of UTF8String): IBson;
 var
   buf: IBsonBuffer;
   i: Integer;

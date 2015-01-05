@@ -14,6 +14,8 @@ uses
   uTestMongoCollection in 'uTestMongoCollection.pas',
   uTestMongoCursor in 'uTestMongoCursor.pas',
   uTestMongoDatabase in 'uTestMongoDatabase.pas',
+  uTestMongoGridfs in 'uTestMongoGridfs.pas',
+  uTestMongoGridfsFile in 'uTestMongoGridfsFile.pas',
   LibBsonAPI in '..\src\LibBsonAPI.pas',
   MongoBson in '..\src\MongoBson.pas',
   MongoBsonSerializer in '..\src\MongoBsonSerializer.pas',
@@ -25,6 +27,8 @@ uses
   uMongoCollection in '..\src\uMongoCollection.pas',
   uMongoCursor in '..\src\uMongoCursor.pas',
   uMongoDatabase in '..\src\uMongoDatabase.pas',
+  uMongoGridfs in '..\src\uMongoGridfs.pas',
+  uMongoGridfsFile in '..\src\uMongoGridfsFile.pas',
   uMongoReadPrefs in '..\src\uMongoReadPrefs.pas',
   uMongoWriteConcern in '..\src\uMongoWriteConcern.pas';
 

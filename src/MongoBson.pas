@@ -353,6 +353,12 @@ type
     property Value: Variant read GetAsVariant;
   end;
 
+  bson_error_p = ^bson_error_t;
+  bson_error_t = packed record
+    domain, code: LongWord;
+    message: array [0..503] of AnsiChar;
+  end;
+
   bson_p = ^bson_t;
   bson_pp = ^bson_p;
   bson_t = packed record

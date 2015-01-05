@@ -9,7 +9,7 @@ uses
 type
   EMongoDatabase = class(EMongo);
 
-  TMongoDatabase = class(TMongoObject)
+  TMongoDatabase = class(TMongoReadPrefsWriteConcernObject)
   private
     FNativeDatabase: Pointer;
     function GetNativeDatabase: Pointer;

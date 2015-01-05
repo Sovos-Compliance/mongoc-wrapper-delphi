@@ -37,9 +37,10 @@ const
 type
   EMongoCollection = class(EMongo);
 
-  TMongoCollection = class(TMongoObject)
+  TMongoCollection = class(TMongoReadPrefsWriteConcernObject)
   private
     FNativeCollection: Pointer;
+    FOwnsNativeCollection: Boolean;
     function GetName: UTF8String;
     function FindAndModify(const AQuery, AUpdate: IBson;
                            ARemove, AUpsert, ANew: Boolean;
@@ -50,7 +51,8 @@ type
     function GetWriteConcern: IMongoWriteConcern; override;
     procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern); override;
   public
-    constructor Create(ANativeCollection: Pointer);
+    constructor Create(ANativeCollection: Pointer;
+                       AOwnsNativeCollection: Boolean = true);
     destructor Destroy; override;
     function Find(const AQuery: IBson = nil;
                   ASkip: LongWord = 0; ALimit: LongWord = 0;
@@ -119,9 +121,11 @@ uses
 
 { TMongoCollection }
 
-constructor TMongoCollection.Create(ANativeCollection: Pointer);
+constructor TMongoCollection.Create(ANativeCollection: Pointer;
+  AOwnsNativeCollection: Boolean);
 begin
   FNativeCollection := ANativeCollection;
+  FOwnsNativeCollection := AOwnsNativeCollection;
 end;
 
 procedure TMongoCollection.CreateIndex(const AKeys: array of UTF8String;
@@ -153,7 +157,8 @@ end;
 
 destructor TMongoCollection.Destroy;
 begin
-  mongoc_collection_destroy(FNativeCollection);
+  if FOwnsNativeCollection then
+    mongoc_collection_destroy(FNativeCollection);
 end;
 
 procedure TMongoCollection.Drop;

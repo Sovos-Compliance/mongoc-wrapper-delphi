@@ -60,6 +60,8 @@
     <DCCReference Include="..\src\uMongoCollection.pas" />
     <DCCReference Include="..\src\uMongoCursor.pas" />
     <DCCReference Include="..\src\uMongoDatabase.pas" />
+    <DCCReference Include="..\src\uMongoGridfs.pas" />
+    <DCCReference Include="..\src\uMongoGridfsFile.pas" />
     <DCCReference Include="..\src\uMongoReadPrefs.pas" />
     <DCCReference Include="..\src\uMongoWriteConcern.pas" />
     <DCCReference Include="TestMongoBson.pas" />
@@ -70,5 +72,7 @@
     <DCCReference Include="uTestMongoCollection.pas" />
     <DCCReference Include="uTestMongoCursor.pas" />
     <DCCReference Include="uTestMongoDatabase.pas" />
+    <DCCReference Include="uTestMongoGridfs.pas" />
+    <DCCReference Include="uTestMongoGridfsFile.pas" />
   </ItemGroup>
 </Project>

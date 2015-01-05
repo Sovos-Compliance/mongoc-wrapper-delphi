@@ -28,7 +28,11 @@ uses
   uMongoCollection in '..\src\uMongoCollection.pas',
   uTestMongoCollection in 'uTestMongoCollection.pas',
   uMongoCursor in '..\src\uMongoCursor.pas',
-  uTestMongoCursor in 'uTestMongoCursor.pas';
+  uTestMongoCursor in 'uTestMongoCursor.pas',
+  uMongoGridfs in '..\src\uMongoGridfs.pas',
+  uMongoGridfsFile in '..\src\uMongoGridfsFile.pas',
+  uTestMongoGridfs in 'uTestMongoGridfs.pas',
+  uTestMongoGridfsFile in 'uTestMongoGridfsFile.pas';
 
 begin
   Main;

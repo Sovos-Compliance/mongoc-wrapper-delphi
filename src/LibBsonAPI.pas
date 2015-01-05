@@ -14,18 +14,11 @@ const
   LibBson_DLL = 'mongo-client_' + ConfigType + CPUType + '_v' + LibBson_DllVersion + '.dll';
 
 type
-  { IMPORTANT: Keep this structures sync with C code }
-  bson_error_p = ^bson_error_t;
-  bson_error_t = packed record
-    domain, code: LongWord;
-    message: array [0..503] of AnsiChar;
-  end;
-
   // we don't care about details, we just know bson_iter_t aligned to 128
   bson_iter_p = ^bson_iter_t;
   bson_iter_t = array[0..127] of Byte;
 
-  PPbyte = ^PByte;
+  PPByte = ^PByte;
 
 {$IFNDEF OnDemandLibbsonLoad}
 procedure bson_free(mem : PAnsiChar); cdecl; external LibBson_DLL;

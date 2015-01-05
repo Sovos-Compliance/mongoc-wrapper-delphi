@@ -5,12 +5,12 @@ interface
 uses
   SysUtils,
   uMongo, uMongoReadPrefs, uMongoWriteConcern, uMongoDatabase, uMongoCollection,
+  uMongoGridfs,
   MongoBson, uDelphi5;
 
 type
 
 { TODO:
-  mongoc_client_get_gridfs
   mongoc_client_get_uri
   mongoc_client_new_from_uri
   mongoc_client_set_ssl_opts
@@ -19,7 +19,7 @@ type
 
   EMongoClient = class(EMongo);
 
-  TMongoClient = class(TMongoObject)
+  TMongoClient = class(TMongoReadPrefsWriteConcernObject)
   private
     FNativeClient: Pointer;
     function GetMaxBsonSize: Longint;
@@ -38,6 +38,8 @@ type
     function GetServerStatus(const AReadPrefs: IMongoReadPrefs = nil): IBson;
     function GetDatabase(const name: UTF8String): TMongoDatabase;
     function GetCollection(const DbName, CollectionName: UTF8String): TMongoCollection;
+    function GetGridfs(const ADbName: UTF8String;
+                       const APrefix: UTF8String = ''): TMongoGridfs;
     property MaxBsonSize: Longint read GetMaxBsonSize;
     property MaxMessageSize: Longint read GetMaxMessageSize;
   end;
@@ -73,6 +75,25 @@ begin
 
   Result := PPAnsiCharToUTF8StringStringArray(names);
   bson_strfreev(names);
+end;
+
+function TMongoClient.GetGridfs(const ADbName,
+  APrefix: UTF8String): TMongoGridfs;
+var
+  prefix: PAnsiChar;
+  nativeGridfs: Pointer;
+begin
+  if APrefix <> '' then
+    prefix := PAnsiChar(APrefix)
+  else
+    prefix := nil;
+
+  nativeGridfs := mongoc_client_get_gridfs(FNativeClient, PAnsiChar(ADbName),
+                                           prefix, @FError);
+  if nativeGridfs = nil then
+    raise EMongoClient.Create(@FError);
+
+  Result := TMongoGridfs.Create(nativeGridfs);
 end;
 
 function TMongoClient.GetCollection(const DbName,
