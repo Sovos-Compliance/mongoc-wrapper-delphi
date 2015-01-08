@@ -68,9 +68,9 @@ var
   f: IMongoGridfsFile;
 begin
   f := FGridfs.CreateFile(AName);
-    if AData <> '' then
-      CheckEquals(Length(AData), f.Write(PByte(AData), Length(AData)));
-    f.Save;
+  if AData <> '' then
+    CheckEquals(Length(AData), f.Write(AData[1], Length(AData)));
+  f.Save;
 end;
 
 procedure TMongoGridfsTestCase.SetUp;
