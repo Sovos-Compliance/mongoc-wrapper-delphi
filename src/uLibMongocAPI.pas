@@ -84,7 +84,7 @@ type
   mongoc_iovec_p = ^mongoc_iovec_t;
   mongoc_iovec_t = record
     iov_len: size_t;
-    iov_base: PAnsiChar;
+    iov_base: PByte;
   end;
 
 
@@ -861,6 +861,15 @@ type
   function mongoc_gridfs_get_files(gridfs: Pointer): Pointer;
   cdecl; external LibMongoc_Dll;
 
+{ bool
+  mongoc_gridfs_remove_by_filename (mongoc_gridfs_t *gridfs,
+                                    const char      *filename,
+                                    bson_error_t    *error); }
+  function mongoc_gridfs_remove_by_filename(gridfs: Pointer;
+                                            const filename: PAnsiChar;
+                                            error: bson_error_p): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
 
 //
 // mongoc_gridfs_cnv_file_t
@@ -940,16 +949,23 @@ type
 
 { int
   mongoc_gridfs_cnv_file_seek (mongoc_gridfs_file_t *file,
-                               uint64_t              delta,
+                               int64_t               delta,
                                int                   whence); }
   function mongoc_gridfs_cnv_file_seek(afile: Pointer;
-                                       delta: UInt64;
+                                       delta: Int64;
                                        whence: Integer): Integer;
   cdecl; external LibMongoc_Dll;
 
 { uint64_t
   mongoc_gridfs_cnv_file_tell (mongoc_gridfs_file_t *file); }
   function mongoc_gridfs_cnv_file_tell(afile: Pointer): UInt64;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_gridfs_cnv_file_remove (mongoc_gridfs_cnv_file_t *file,
+                                 bson_error_t             *error); }
+  function mongoc_gridfs_cnv_file_remove(afile: Pointer;
+                                         error: bson_error_p): UInt64;
   cdecl; external LibMongoc_Dll;
 
 { const char *
@@ -1018,6 +1034,39 @@ type
                                        const bson_t         *metadata); }
   procedure mongoc_gridfs_cnv_file_set_metadata(afile: Pointer;
                                                 const metadata: bson_p);
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_gridfs_cnv_file_is_encrypted (mongoc_gridfs_cnv_file_t *file); }
+  function mongoc_gridfs_cnv_file_is_encrypted(afile: Pointer): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_gridfs_cnv_file_set_aes_key (mongoc_gridfs_cnv_file_t *file,
+                                      const unsigned char      *aes_key,
+                                      uint16_t                  aes_key_size); }
+  function mongoc_gridfs_cnv_file_set_aes_key(afile: Pointer;
+                                              const aes_key: PAnsiChar;
+                                              aes_key_size: Word): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_gridfs_cnv_file_set_aes_key_from_password (mongoc_gridfs_cnv_file_t *file,
+                                                    const char               *password,
+                                                    uint16_t                  password_size); }
+  function mongoc_gridfs_cnv_file_set_aes_key_from_password(afile: Pointer;
+                                                            const password: PAnsiChar;
+                                                            password_size: Word): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ bool
+  mongoc_gridfs_cnv_file_is_compressed (mongoc_gridfs_cnv_file_t *file); }
+  function mongoc_gridfs_cnv_file_is_compressed(afile: Pointer): ByteBool;
+  cdecl; external LibMongoc_Dll;
+
+{ int64_t
+  mongoc_gridfs_cnv_file_get_compressed_length (mongoc_gridfs_cnv_file_t *file); }
+  function mongoc_gridfs_cnv_file_get_compressed_length(afile: Pointer): Int64;
   cdecl; external LibMongoc_Dll;
 
 implementation

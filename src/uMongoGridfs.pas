@@ -32,6 +32,7 @@ type
                       AFlags: Integer = MONGOC_CNV_NONE): IMongoGridfsFile; overload;
     function FindFile(const AName: UTF8String;
                       AFlags: Integer = MONGOC_CNV_NONE): IMongoGridfsFile; overload;
+    procedure RemoveFile(const AName: UTF8String);
   end;
 
 implementation
@@ -75,7 +76,7 @@ end;
 procedure TMongoGridfs.Drop;
 begin
   if not mongoc_gridfs_drop(FNativeGridfs, @FError) then
-    raise EMongoGridfs.Create(@Ferror);
+    raise EMongoGridfs.Create(@FError);
 end;
 
 function TMongoGridfs.FindFile(const AName: UTF8String;
@@ -141,6 +142,13 @@ begin
   finally
     coll.Free;
   end;
+end;
+
+procedure TMongoGridfs.RemoveFile(const AName: UTF8String);
+begin
+  if not mongoc_gridfs_remove_by_filename(FNativeGridfs, PAnsiChar(AName),
+                                          @FError) then
+    raise EMongoGridfs.Create(@FError);
 end;
 
 end.

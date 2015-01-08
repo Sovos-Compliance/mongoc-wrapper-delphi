@@ -23,10 +23,14 @@ type
     function GetUploadDate: TDateTime;
     function GetMetaData: IBson;
     function GetPosition: Int64;
+    function GetEncrypted: Boolean;
+    function GetCompressed: Boolean;
+    function GetCompressedSize: Int64;
     procedure SetName(const AName: UTF8String);
     procedure SetMd5(const AMd5: UTF8String);
     procedure SetContentType(const AContentType: UTF8String);
     procedure SetMetaData(const AMetaData: IBson);
+    procedure SetPassword(const APassword: UTF8String);
     procedure Save;
     function Write(const ABuf; ASize: NativeUint): NativeUint;
     function Read(var ABuf; ASize: NativeUint): NativeUint;
@@ -39,6 +43,10 @@ type
     property UploadDate: TDateTime read GetUploadDate;
     property MetaData: IBson read GetMetaData write SetMetaData;
     property Position: Int64 read GetPosition;
+    property Encrypted: Boolean read GetEncrypted;
+    property Password: UTF8String write SetPassword;
+    property Compressed: Boolean read GetCompressed;
+    property CompressedSize: Int64 read GetCompressedSize;
   end;
 
   function NewMongoGridfsFile(ANativeFile: Pointer): IMongoGridfsFile;
@@ -60,10 +68,14 @@ type
     function GetUploadDate: TDateTime;
     function GetMetaData: IBson;
     function GetPosition: Int64;
+    function GetEncrypted: Boolean;
+    function GetCompressed: Boolean;
+    function GetCompressedSize: Int64;
     procedure SetName(const AName: UTF8String);
     procedure SetMd5(const AMd5: UTF8String);
     procedure SetContentType(const AContentType: UTF8String);
     procedure SetMetaData(const AMetaData: IBson);
+    procedure SetPassword(const APassword: UTF8String);
   public
     constructor Create(ANativeFile: Pointer);
     destructor Destroy; override;
@@ -79,6 +91,10 @@ type
     property UploadDate: TDateTime read GetUploadDate;
     property MetaData: IBson read GetMetaData write SetMetaData;
     property Position: Int64 read GetPosition;
+    property Encrypted: Boolean read GetEncrypted;
+    property Password: UTF8String write SetPassword;
+    property Compressed: Boolean read GetCompressed;
+    property CompressedSize: Int64 read GetCompressedSize;
   end;
 
 { TMongoGridfsFile }
@@ -99,9 +115,24 @@ begin
   Result := mongoc_gridfs_cnv_file_get_chunk_size(FNativeFile);
 end;
 
+function TMongoGridfsFile.GetCompressed: Boolean;
+begin
+  Result := mongoc_gridfs_cnv_file_is_compressed(FNativeFile);
+end;
+
+function TMongoGridfsFile.GetCompressedSize: Int64;
+begin
+  Result := mongoc_gridfs_cnv_file_get_compressed_length(FNativeFile);
+end;
+
 function TMongoGridfsFile.GetContentType: UTF8String;
 begin
   Result := UTF8String(mongoc_gridfs_cnv_file_get_content_type(FNativeFile));
+end;
+
+function TMongoGridfsFile.GetEncrypted: Boolean;
+begin
+  Result := mongoc_gridfs_cnv_file_is_encrypted(FNativeFile);
 end;
 
 function TMongoGridfsFile.GetMd5: UTF8String;
@@ -148,8 +179,8 @@ var
   ret: NativeInt;
 begin
   iov.iov_len := ASize;
-  iov.iov_base := PAnsiChar(@ABuf);
-  ret := mongoc_gridfs_cnv_file_readv(FNativeFile, @iov, 1, 0, 0);
+  iov.iov_base := PByte(@ABuf);
+  ret := mongoc_gridfs_cnv_file_readv(FNativeFile, @iov, 1, ASize, 0);
   if ret < 0 then
   begin
     mongoc_gridfs_cnv_file_error(FNativeFile, @err);
@@ -172,10 +203,10 @@ end;
 
 procedure TMongoGridfsFile.Seek(Offset: Int64; Origin: TSeekOrigin);
 begin
-  if Origin = soEnd then
+  //if Origin = soEnd then
     // fix weird native implementation
-    Inc(Offset);
-  if mongoc_gridfs_cnv_file_seek(FNativeFile, UInt64(Offset), Integer(Origin)) <> 0 then
+    //Inc(Offset);
+  if mongoc_gridfs_cnv_file_seek(FNativeFile, Offset, Integer(Origin)) <> 0 then
     raise EMongoGridfsFile.Create('mongoc_gridfs_file_seek failed');
 end;
 
@@ -199,6 +230,14 @@ begin
   mongoc_gridfs_cnv_file_set_filename(FNativeFile, PAnsiChar(AName));
 end;
 
+procedure TMongoGridfsFile.SetPassword(const APassword: UTF8String);
+begin
+  if not mongoc_gridfs_cnv_file_set_aes_key_from_password(FNativeFile,
+                                                          PAnsiChar(APassword),
+                                                          Length(APassword)) then
+    raise EMongoGridfsFile.Create('Aes key generation failed');
+end;
+
 function TMongoGridfsFile.Write(const ABuf; ASize: NativeUint): NativeUint;
 var
   err: bson_error_t;
@@ -206,7 +245,7 @@ var
   ret: NativeInt;
 begin
   iov.iov_len := ASize;
-  iov.iov_base := PAnsiChar(ABuf);
+  iov.iov_base := PByte(@ABuf);
   ret := mongoc_gridfs_cnv_file_writev(FNativeFile, @iov, 1, 0);
   if ret < 0 then
   begin
