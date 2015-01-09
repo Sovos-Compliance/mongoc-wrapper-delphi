@@ -15,7 +15,30 @@ const
 type
   EMongoGridfs = class(EMongo);
 
-  TMongoGridfs = class(TMongoObject)
+  IMongoGridfs = interface
+    ['{c78da0ba-6665-4aa1-9c27-f47a1f3eda41}']
+    procedure Drop;
+    function CreateFile(const AName: UTF8String;
+                        AFlags: Integer = MONGOC_CNV_NONE;
+                        const AMetadata: IBson = nil;
+                        const AContentType: UTF8String = ''): IMongoGridfsFile;
+    function GetFileNames: TStringArray;
+    function FindFile(const AQuery: IBson = nil;
+                      AFlags: Integer = MONGOC_CNV_NONE): IMongoGridfsFile; overload;
+    function FindFile(const AName: UTF8String;
+                      AFlags: Integer = MONGOC_CNV_NONE): IMongoGridfsFile; overload;
+    procedure RemoveFile(const AName: UTF8String);
+  end;
+
+  function NewMongoGridfs(ANativeGridfs: Pointer): IMongoGridfs;
+
+implementation
+
+uses
+  uLibMongocAPI, uMongoCollection, uMongoCursor, uMongoReadPrefs;
+
+type
+  TMongoGridfs = class(TMongoObject, IMongoGridfs)
   private
     FNativeGridfs: Pointer;
     FError: bson_error_t;
@@ -34,11 +57,6 @@ type
                       AFlags: Integer = MONGOC_CNV_NONE): IMongoGridfsFile; overload;
     procedure RemoveFile(const AName: UTF8String);
   end;
-
-implementation
-
-uses
-  uLibMongocAPI, uMongoCollection, uMongoCursor, uMongoReadPrefs;
 
 { TMongoGridfs }
 
@@ -119,7 +137,7 @@ const
   fields: array[0..0] of UTF8String = ('filename');
 var
   coll: TMongoCollection;
-  cursor: TMongoCursor;
+  cursor: IMongoCursor;
   it: IBsonIterator;
   i: Integer;
   nilReadPrefs: IMongoReadPrefs;
@@ -128,17 +146,13 @@ begin
   try
     SetLength(Result, coll.GetCount);
     cursor := coll.Find(BSON([]), fields, 0, 0, 100, 0, nilReadPrefs);
-    try
-      i := 0;
-      while cursor.Next do
-      begin
-        it := cursor.Current.find('filename');
-        Assert(it <> nil);
-        Result[i] := it.AsUTF8String;
-        Inc(i);
-      end;
-    finally
-      cursor.Free;
+    i := 0;
+    while cursor.Next do
+    begin
+      it := cursor.Current.find('filename');
+      Assert(it <> nil);
+      Result[i] := it.AsUTF8String;
+      Inc(i);
     end;
   finally
     coll.Free;
@@ -150,6 +164,11 @@ begin
   if not mongoc_gridfs_remove_by_filename(FNativeGridfs, PAnsiChar(AName),
                                           @FError) then
     raise EMongoGridfs.Create(@FError);
+end;
+
+function NewMongoGridfs(ANativeGridfs: Pointer): IMongoGridfs;
+begin
+  Result := TMongoGridfs.Create(ANativeGridfs);
 end;
 
 end.
