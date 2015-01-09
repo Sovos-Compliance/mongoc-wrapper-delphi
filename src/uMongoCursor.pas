@@ -6,7 +6,23 @@ uses
   MongoBson;
 
 type
-  TMongoCursor = class
+  IMongoCursor = interface
+    function GetAlive: Boolean;
+    function GetCurrent: IBson;
+    function Next: Boolean;
+    property Alive: Boolean read GetAlive;
+    property Current: IBson read GetCurrent;
+  end;
+
+  function NewMongoCursor(ANativeCursor: Pointer): IMongoCursor;
+
+implementation
+
+uses
+  uLibMongocAPI;
+
+type
+  TMongoCursor = class(TInterfacedObject, IMongoCursor)
   private
     FNativeCursor: Pointer;
     FCachedCurrent: IBson;
@@ -19,11 +35,6 @@ type
     property Alive: Boolean read GetAlive;
     property Current: IBson read GetCurrent;
   end;
-
-implementation
-
-uses
-  uLibMongocAPI;
 
 { TMongoCursor }
 
@@ -55,6 +66,11 @@ begin
   Result := mongoc_cursor_next(FNativeCursor, @b);
   if Result then
     FCachedCurrent := NewBson(b);
+end;
+
+function NewMongoCursor(ANativeCursor: Pointer): IMongoCursor;
+begin
+  Result := TMongoCursor.Create(ANativeCursor);
 end;
 
 end.

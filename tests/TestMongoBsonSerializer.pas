@@ -42,7 +42,10 @@ type
 implementation
 
 uses
-  MongoBson, Classes, SysUtils, Dialogs, uDelphi5, uTestMongo;
+  MongoBson, Classes, SysUtils, uDelphi5;
+
+const
+  DATE_TIME_EPSILON = 1000;
 
 type
   TEnumeration = (eFirst, eSecond);
