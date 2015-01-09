@@ -117,7 +117,7 @@ type
 
   Tbson_new = function : bson_p; cdecl;
   Tbson_new_from_data = function(const data : PByte; length : Cardinal) : bson_p; cdecl;
-  Tbson_new_from_json = function(const data : PByte; length : Integer; error : bson_error_p) : bson_p; cdecl;
+  Tbson_new_from_json = function(const data : PAnsiChar; length : Integer; error : bson_error_p) : bson_p; cdecl;
   Tbson_copy = function(const bson : bson_p) : Pointer; cdecl;
   Tbson_copy_to = procedure(const src : bson_p; dst : bson_p); cdecl;
   Tbson_init = procedure(bson : bson_p); cdecl;
@@ -186,7 +186,7 @@ type
   Tbson_iter_int32 = function(const iter : bson_iter_p) : LongInt; cdecl;
   Tbson_iter_int64 = function(const iter : bson_iter_p) : Int64; cdecl;
   Tbson_iter_double = function(const iter : bson_iter_p) : Double; cdecl;
-  Tbson_iter_utf8 = function(const iter : bson_iter_p; length : LongWord) : PAnsiChar; cdecl;
+  Tbson_iter_utf8 = function(const iter : bson_iter_p; length : PLongWord) : PAnsiChar; cdecl;
   Tbson_iter_date_time = function(const iter : bson_iter_p) : Int64; cdecl;
   Tbson_iter_bool = function(const iter : bson_iter_p) : ByteBool; cdecl;
   Tbson_iter_code = function(const iter : bson_iter_p; length : PLongWord) : PAnsiChar; cdecl;
