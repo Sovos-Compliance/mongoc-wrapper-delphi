@@ -400,10 +400,9 @@ end;
 
 function TMongoCollection.FindAndModify(const AQuery, AUpdate: IBson; AUpsert,
   ANew: Boolean): IBson;
-var
-  emptyArr: TStringArray;
+const
+  emptyArr: array[0..0] of UTF8String = ('');
 begin
-  SetLength(emptyArr, 0);
   Result := FindAndModify(AQuery, AUpdate, emptyArr, emptyArr, AUpsert, ANew);
 end;
 

@@ -38,7 +38,7 @@ type
 implementation
 
 uses
-  uLibMongocAPI, uMongoCollection, uMongoCursor;
+  uLibMongocAPI, uMongoCollection, uMongoCursor, uMongoReadPrefs;
 
 { TMongoGridfs }
 
@@ -122,11 +122,12 @@ var
   cursor: TMongoCursor;
   it: IBsonIterator;
   i: Integer;
+  nilReadPrefs: IMongoReadPrefs;
 begin
   coll := TMongoCollection.Create(mongoc_gridfs_get_files(FNativeGridfs), false);
   try
     SetLength(Result, coll.GetCount);
-    cursor := coll.Find(BSON([]), fields);
+    cursor := coll.Find(BSON([]), fields, 0, 0, 100, 0, nilReadPrefs);
     try
       i := 0;
       while cursor.Next do
