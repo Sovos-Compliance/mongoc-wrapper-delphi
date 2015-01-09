@@ -9,6 +9,12 @@ const
   LibMongoc_Dll = LibBson_DLL;
   BSON_HOST_NAME_MAX = 255;
 
+  MONGOC_CNV_NONE: Integer = 0;
+  MONGOC_CNV_COMPRESS: Integer = 1 shl 1;
+  MONGOC_CNV_ENCRYPT: Integer = 1 shl 2;
+  MONGOC_CNV_UNCOMPRESS: Integer = 1 shl 3;
+  MONGOC_CNV_DECRYPT: Integer = 1 shl 4;
+
 type
 (*typedef struct
   {

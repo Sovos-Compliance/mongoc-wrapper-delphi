@@ -103,7 +103,8 @@ begin
   begin
     buf := NewBsonBuffer;
     for i := Low(arr) to High(arr) do
-      buf.append(arr[i], 1);
+      if arr[i] <> '' then
+        buf.append(arr[i], 1);
     Result := buf.finish;
   end;
 end;

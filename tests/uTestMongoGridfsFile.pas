@@ -4,14 +4,14 @@ interface
 
 uses
   TestFramework,
-  uTestMongo, uTestMongoGridfs, uMongoGridfsFile, uDelphi5;
+  uTestMongo, uTestMongoGridfs, uMongoGridfs, uMongoGridfsFile, uDelphi5;
 
 type
   TestMongoGridfsFile = class(TMongoGridfsTestCase)
   private
     FFile: IMongoGridfsFile;
     FBuf: array[0..255] of AnsiChar;
-    procedure Check_Write_Read(AWriteFlags, AReadFlags: Integer; ASize: NativeUint);
+    procedure Check_Write_Read(AWriteFlags, AReadFlags: TMongoFlags; ASize: NativeUint);
   published
     procedure Getters;
     procedure Setters;
@@ -33,7 +33,7 @@ type
 implementation
 
 uses
-  SysUtils, Classes, MongoBson, uMongoGridfs;
+  SysUtils, Classes, MongoBson;
 
 const
   HELLO: UTF8String = 'hello world';
@@ -42,7 +42,7 @@ const
 
 { TestMongoGridfsFile }
 
-procedure TestMongoGridfsFile.Check_Write_Read(AWriteFlags, AReadFlags: Integer;
+procedure TestMongoGridfsFile.Check_Write_Read(AWriteFlags, AReadFlags: TMongoFlags;
   ASize: NativeUint);
 const
   FILENAME = 'test';
@@ -67,13 +67,13 @@ begin
       end;
 
       FFile := FGridfs.CreateFile(FILENAME, AWriteFlags);
-      if AWriteFlags and MONGOC_CNV_ENCRYPT <> 0 then
+      if mfEncrypt in AWriteFlags then
         FFile.Password := PASS;
       CheckEquals(Count, FFile.Write(PByte(Data)^, Count));
       FFile.Save;
 
       FFile := FGridfs.FindFile(FILENAME, AReadFlags);
-      if AReadFlags and MONGOC_CNV_DECRYPT <> 0 then
+      if mfDecrypt in AReadFlags then
         FFile.Password := PASS;
       CheckEquals(Count, FFile.Read(Buffer^, Count));
       Check(CompareMem(Buffer, Data, Count));
@@ -89,13 +89,13 @@ procedure TestMongoGridfsFile.Compressed;
 const
   FILENAME = 'test';
 begin
-  FFile := FGridfs.CreateFile(FILENAME, MONGOC_CNV_COMPRESS);
+  FFile := FGridfs.CreateFile(FILENAME, [mfCompress]);
   CheckFalse(FFile.Compressed);
   CheckEquals(Length(TEST_DATA), FFile.Write(TEST_DATA[1], Length(TEST_DATA)));
   CheckEquals(Length(TEST_DATA), FFile.Write(TEST_DATA[1], Length(TEST_DATA)));
   FFile.Save;
 
-  FFile := FGridfs.FindFile(FILENAME, MONGOC_CNV_UNCOMPRESS);
+  FFile := FGridfs.FindFile(FILENAME, [mfUncompress]);
   Check(FFile.Compressed);
   Check(FFile.CompressedSize < FFile.Size);
   CheckEquals(2 * Length(TEST_DATA), FFile.Read(FBuf, SizeOf(FBuf)));
@@ -108,13 +108,13 @@ const
   FILENAME = 'test';
   PASS = '111111';
 begin
-  FFile := FGridfs.CreateFile(FILENAME, MONGOC_CNV_ENCRYPT);
+  FFile := FGridfs.CreateFile(FILENAME, [mfEncrypt]);
   CheckFalse(FFile.Encrypted);
   FFile.Password := PASS;
   CheckEquals(Length(TEST_DATA), FFile.Write(TEST_DATA[1], Length(TEST_DATA)));
   FFile.Save;
 
-  FFile := FGridfs.FindFile(FILENAME, MONGOC_CNV_DECRYPT);
+  FFile := FGridfs.FindFile(FILENAME, [mfDecrypt]);
   Check(FFile.Encrypted);
   FFile.Password := PASS;
   CheckEquals(Length(TEST_DATA), FFile.Read(FBuf, SizeOf(FBuf)));
@@ -377,16 +377,14 @@ procedure TestMongoGridfsFile.Write_Read;
 const
   SIZES: array[0..2] of Integer = (6, 256 * 1024, 5 * 1024 * 1024);
   FLAGS_SIZE = 4;
-  WRITE_FLAGS: array[1..FLAGS_SIZE] of Integer = (MONGOC_CNV_NONE,
-                                                  MONGOC_CNV_COMPRESS,
-                                                  MONGOC_CNV_ENCRYPT,
-                                                  MONGOC_CNV_COMPRESS and
-                                                    MONGOC_CNV_ENCRYPT);
-  READ_FLAGS: array[1..FLAGS_SIZE] of Integer = (MONGOC_CNV_NONE,
-                                                 MONGOC_CNV_UNCOMPRESS,
-                                                 MONGOC_CNV_DECRYPT,
-                                                 MONGOC_CNV_UNCOMPRESS and
-                                                   MONGOC_CNV_DECRYPT);
+  WRITE_FLAGS: array[1..FLAGS_SIZE] of TMongoFlags = ([],
+                                                      [mfCompress],
+                                                      [mfEncrypt],
+                                                      [mfCompress, mfEncrypt]);
+  READ_FLAGS: array[1..FLAGS_SIZE] of TMongoFlags = ([],
+                                                     [mfUncompress],
+                                                     [mfDecrypt],
+                                                     [mfUncompress, mfDecrypt]);
 var
   i, j: Integer;
 begin

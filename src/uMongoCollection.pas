@@ -58,13 +58,13 @@ type
                   ASkip: LongWord = 0; ALimit: LongWord = 0;
                   ABatchSize: LongWord = 100;
                   AFlags: Integer = MONGOC_QUERY_NONE;
-                  const AReadPrefs: IMongoReadPrefs = nil): TMongoCursor; overload;
+                  const AReadPrefs: IMongoReadPrefs = nil): IMongoCursor; overload;
     function Find(const AQuery: IBson;
                   AFields: array of UTF8String;
                   ASkip: LongWord = 0; ALimit: LongWord = 0;
                   ABatchSize: LongWord = 100;
                   AFlags: Integer = MONGOC_QUERY_NONE;
-                  const AReadPrefs: IMongoReadPrefs = nil): TMongoCursor; overload;
+                  const AReadPrefs: IMongoReadPrefs = nil): IMongoCursor; overload;
     function RunCommand(const ACommand: IBson;
                         const AReadPrefs: IMongoReadPrefs = nil): IBson; overload;
     function RunCommand(const ACommand: IBson;
@@ -72,7 +72,7 @@ type
                         ASkip: LongWord = 0; ALimit: LongWord = 0;
                         ABatchSize: LongWord = 100;
                         AFlags: Integer = MONGOC_QUERY_NONE;
-                        const AReadPrefs: IMongoReadPrefs = nil): TMongoCursor; overload;
+                        const AReadPrefs: IMongoReadPrefs = nil): IMongoCursor; overload;
     function GetCount(const AQuery: IBson = nil;
                       ASkip: Int64 = 0; ALimit: Int64 = 0;
                       AReadPrefs: IMongoReadPrefs = nil;
@@ -301,7 +301,7 @@ end;
 
 function TMongoCollection.RunCommand(const ACommand: IBson;
   AFields: array of UTF8String; ASkip, ALimit, ABatchSize: LongWord;
-  AFlags: Integer; const AReadPrefs: IMongoReadPrefs): TMongoCursor;
+  AFlags: Integer; const AReadPrefs: IMongoReadPrefs): IMongoCursor;
 var
   fields: IBson;
 begin
@@ -309,11 +309,11 @@ begin
 
   fields := ToBson(AFields);
 
-  Result := TMongoCursor.Create(mongoc_collection_command(FNativeCollection, AFlags,
-                                ASkip, ALimit, ABatchSize,
-                                ACommand.NativeBson,
-                                NativeBsonOrNil(fields),
-                                NativeReadPrefsOrNil(AReadPrefs)));
+  Result := NewMongoCursor(mongoc_collection_command(FNativeCollection, AFlags,
+                           ASkip, ALimit, ABatchSize,
+                           ACommand.NativeBson,
+                           NativeBsonOrNil(fields),
+                           NativeReadPrefsOrNil(AReadPrefs)));
 end;
 
 function TMongoCollection.RunCommand(const ACommand: IBson;
@@ -366,7 +366,7 @@ end;
 
 function TMongoCollection.Find(const AQuery: IBson;
   AFields: array of UTF8String; ASkip, ALimit, ABatchSize: LongWord;
-  AFlags: Integer; const AReadPrefs: IMongoReadPrefs): TMongoCursor;
+  AFlags: Integer; const AReadPrefs: IMongoReadPrefs): IMongoCursor;
 var
   fields, emptyBson: IBson;
   query: bson_p;
@@ -381,16 +381,16 @@ begin
     query := AQuery.NativeBson;
 
 
-  Result := TMongoCursor.Create(mongoc_collection_find(FNativeCollection, AFlags,
-                                ASkip, ALimit, ABatchSize,
-                                query,
-                                NativeBsonOrNil(fields),
-                                NativeReadPrefsOrNil(AReadPrefs)));
+  Result := NewMongoCursor(mongoc_collection_find(FNativeCollection, AFlags,
+                           ASkip, ALimit, ABatchSize,
+                           query,
+                           NativeBsonOrNil(fields),
+                           NativeReadPrefsOrNil(AReadPrefs)));
 end;
 
 function TMongoCollection.Find(const AQuery: IBson; ASkip, ALimit,
   ABatchSize: LongWord; AFlags: Integer;
-  const AReadPrefs: IMongoReadPrefs): TMongoCursor;
+  const AReadPrefs: IMongoReadPrefs): IMongoCursor;
 var
   emptyArr: TStringArray;
 begin
@@ -400,10 +400,9 @@ end;
 
 function TMongoCollection.FindAndModify(const AQuery, AUpdate: IBson; AUpsert,
   ANew: Boolean): IBson;
-var
-  emptyArr: TStringArray;
+const
+  emptyArr: array[0..0] of UTF8String = ('');
 begin
-  SetLength(emptyArr, 0);
   Result := FindAndModify(AQuery, AUpdate, emptyArr, emptyArr, AUpsert, ANew);
 end;
 

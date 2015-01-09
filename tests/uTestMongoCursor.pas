@@ -9,7 +9,7 @@ uses
 type
   TestMongoCursor = class(TMongoTestCase)
   private
-    FCursor: TMongoCursor;
+    FCursor: IMongoCursor;
   published
     procedure Next_Current;
   end;

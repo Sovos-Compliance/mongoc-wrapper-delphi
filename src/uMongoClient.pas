@@ -39,7 +39,7 @@ type
     function GetDatabase(const name: UTF8String): TMongoDatabase;
     function GetCollection(const DbName, CollectionName: UTF8String): TMongoCollection;
     function GetGridfs(const ADbName: UTF8String;
-                       const APrefix: UTF8String = ''): TMongoGridfs;
+                       const APrefix: UTF8String = ''): IMongoGridfs;
     property MaxBsonSize: Longint read GetMaxBsonSize;
     property MaxMessageSize: Longint read GetMaxMessageSize;
   end;
@@ -78,7 +78,7 @@ begin
 end;
 
 function TMongoClient.GetGridfs(const ADbName,
-  APrefix: UTF8String): TMongoGridfs;
+  APrefix: UTF8String): IMongoGridfs;
 var
   prefix: PAnsiChar;
   nativeGridfs: Pointer;
@@ -93,7 +93,7 @@ begin
   if nativeGridfs = nil then
     raise EMongoClient.Create(@FError);
 
-  Result := TMongoGridfs.Create(nativeGridfs);
+  Result := NewMongoGridfs(nativeGridfs);
 end;
 
 function TMongoClient.GetCollection(const DbName,
