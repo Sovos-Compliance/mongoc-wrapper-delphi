@@ -13,6 +13,9 @@ uses
   {$IFDEF OnDemandLibbsonLoad}
   LibBsonAPI,
   {$ENDIF}
+  {$IFDEF OnDemandMongocLoad}
+  uLibMongocAPI,
+  {$ENDIF}
   TestFramework,
   GUITestRunner,
   XmlTestRunner2;
@@ -22,13 +25,6 @@ var
 
 procedure Main;
 begin
-{$IFDEF OnDemandLibbsonLoad}
-  if LowerCase(ExtractFileExt(ParamStr(1))) = '.dll' then
-    LoadLibbsonLibrary(ParamStr(1))
-  else
-    LoadLibbsonLibrary;
-{$ENDIF}
-
   if IsConsole then
   begin
     xml_filename := ChangeFileExt(ExtractFileName(Application.ExeName), '.xml');
@@ -36,9 +32,25 @@ begin
   end
   else
     GUITestRunner.RunRegisteredTests;
-{$IFDEF OnDemandLibbsonLoad}
-  FreeLibbsonLibrary;
-{$ENDIF}
 end;
+
+initialization
+{$IFDEF OnDemandLibbsonLoad}
+  if (ParamCount > 0) and (LowerCase(ExtractFileExt(ParamStr(1))) = '.dll') then
+    LoadLibbsonLibrary(ParamStr(1))
+  else
+    LoadLibbsonLibrary;
+{$ENDIF}
+{$IFDEF OnDemandMongocLoad}
+  if (ParamCount > 1) and (LowerCase(ExtractFileExt(ParamStr(2))) = '.dll') then
+    LoadLibmongocLibrary(ParamStr(2))
+  else
+    LoadLibmongocLibrary;
+{$ENDIF}
+
+finalization
+  // we don't call FreeLibmongocLibrary or FreeLibbsonLibrary
+  // cause they are released automatically
+  // and issues with finalization order can cause access violations
 
 end.
