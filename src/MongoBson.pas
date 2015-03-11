@@ -227,7 +227,7 @@ type
     { append BINDATA to the buffer }
     function append(const Name: UTF8String; Value: IBsonBinary): Boolean; overload;
     { append a TBson document as a subobject }
-    function append(const Name: UTF8String; Value: IBson): Boolean; overload;
+    function append(const Name: UTF8String; const Value: IBson): Boolean; overload;
     { Generic version of append.  Calls one of the other append functions
       if the type contained in the variant is supported. }
     {$IFDEF DELPHI2007}
@@ -668,7 +668,7 @@ type
     function append(const Name: UTF8String; Value: IBsonTimestamp): Boolean;
         overload;
     function append(const Name: UTF8String; Value: IBsonBinary): Boolean; overload;
-    function append(const Name: UTF8String; Value: IBson): Boolean; overload;
+    function append(const Name: UTF8String; const Value: IBson): Boolean; overload;
     {$IFDEF DELPHI2007}
     function append(const Name: UTF8String; const Value: Variant): Boolean;
         overload;
@@ -1221,7 +1221,7 @@ begin
     Result := bson_append_binary(GetCurrNativeBson, PAnsiChar(Name), -1, Kind, Data, Length);
 end;
 
-function TBsonBuffer.append(const Name: UTF8String; Value: IBson): Boolean;
+function TBsonBuffer.append(const Name: UTF8String; const Value: IBson): Boolean;
 begin
   Result := bson_append_document(GetCurrNativeBson, PAnsiChar(Name), -1, Value.NativeBson);
 end;
