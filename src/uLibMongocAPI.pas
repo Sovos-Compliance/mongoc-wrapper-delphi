@@ -190,6 +190,24 @@ type
                                         error: bson_error_p): ByteBool;
   cdecl; external LibMongoc_Dll;
 
+{ mongoc_cursor_t *
+  mongoc_client_command (mongoc_client_t           *client,
+                         const char                *db_name,
+                         mongoc_query_flags_t       flags,
+                         uint32_t                   skip,
+                         uint32_t                   limit,
+                         uint32_t                   batch_size,
+                         const bson_t              *query,
+                         const bson_t              *fields,
+                         const mongoc_read_prefs_t *read_prefs); }
+  function mongoc_client_command(client: Pointer;
+                                 const db_name: PAnsiChar;
+                                 flags: Integer;
+                                 skip, limit, batch_size: LongWord;
+                                 const query, fields: bson_p;
+                                 const read_prefs: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
 { char **
   mongoc_client_get_database_names (mongoc_client_t *client,
                                     bson_error_t    *error); }
@@ -1075,6 +1093,55 @@ type
   function mongoc_gridfs_cnv_file_get_compressed_length(afile: Pointer): Int64;
   cdecl; external LibMongoc_Dll;
 
+
+//
+// mongoc_client_pool_t
+//
+
+
+{ void
+  mongoc_client_pool_destroy (mongoc_client_pool_t *pool); }
+  procedure mongoc_client_pool_destroy(pool: Pointer);
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_client_pool_t *
+  mongoc_client_pool_new (const mongoc_uri_t *uri); }
+  function mongoc_client_pool_new(const uri: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_client_t *
+  mongoc_client_pool_pop (mongoc_client_pool_t *pool); }
+  function mongoc_client_pool_pop(pool: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_client_pool_push (mongoc_client_pool_t *pool,
+                           mongoc_client_t      *client); }
+  procedure mongoc_client_pool_push(pool, client: Pointer);
+  cdecl; external LibMongoc_Dll;
+
+{ mongoc_client_t *
+  mongoc_client_pool_try_pop (mongoc_client_pool_t *pool); }
+  function mongoc_client_pool_try_pop(pool: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+
+//
+// mongoc_uri_t
+//
+
+
+{ mongoc_uri_t *
+  mongoc_uri_new (const char *uri_string)
+   BSON_GNUC_WARN_UNUSED_RESULT; }
+  function mongoc_uri_new(const uri_string: PAnsiChar): Pointer;
+  cdecl; external LibMongoc_Dll;
+
+{ void
+  mongoc_uri_destroy (mongoc_uri_t *uri); }
+  procedure mongoc_uri_destroy(uri: Pointer);
+  cdecl; external LibMongoc_Dll;
+
 {$ELSE}
 
   procedure LoadLibmongocLibrary(const dll: string = LibMongoc_Dll);
@@ -1105,6 +1172,12 @@ type
                                            const read_prefs: Pointer;
                                            reply: bson_p;
                                            error: bson_error_p): ByteBool; cdecl;
+  Tmongoc_client_command = function (client: Pointer;
+                                     const db_name: PAnsiChar;
+                                     flags: Integer;
+                                     skip, limit, batch_size: LongWord;
+                                     const query, fields: bson_p;
+                                     const read_prefs: Pointer): Pointer; cdecl;
   Tmongoc_client_get_database_names = function(client: Pointer;
                                                error: bson_error_p): PPAnsiChar; cdecl;
   Tmongoc_client_get_max_bson_size = function(client: Pointer): LongInt; cdecl;
@@ -1350,6 +1423,15 @@ type
   Tmongoc_gridfs_cnv_file_is_compressed = function (afile: Pointer): ByteBool; cdecl;
   Tmongoc_gridfs_cnv_file_get_compressed_length = function (afile: Pointer): Int64; cdecl;
 
+  Tmongoc_client_pool_destroy = procedure (pool: Pointer); cdecl;
+  Tmongoc_client_pool_new = function (const uri: Pointer): Pointer; cdecl;
+  Tmongoc_client_pool_pop = function (pool: Pointer): Pointer; cdecl;
+  Tmongoc_client_pool_push = procedure (pool, client: Pointer); cdecl;
+  Tmongoc_client_pool_try_pop = function (pool: Pointer): Pointer; cdecl;
+
+  Tmongoc_uri_new = function (const uri_string: PAnsiChar): Pointer; cdecl;
+  Tmongoc_uri_destroy = procedure (uri: Pointer); cdecl;
+
 var
   mongoc_init: Tmongoc_init;
   mongoc_cleanup: Tmongoc_cleanup;
@@ -1365,6 +1447,7 @@ var
   mongoc_client_new: Tmongoc_client_new;
   mongoc_client_destroy: Tmongoc_client_destroy;
   mongoc_client_command_simple: Tmongoc_client_command_simple;
+  mongoc_client_command: Tmongoc_client_command;
   mongoc_client_get_database_names: Tmongoc_client_get_database_names;
   mongoc_client_get_max_bson_size: Tmongoc_client_get_max_bson_size;
   mongoc_client_get_max_message_size: Tmongoc_client_get_max_message_size;
@@ -1477,6 +1560,15 @@ var
   mongoc_gridfs_cnv_file_is_compressed: Tmongoc_gridfs_cnv_file_is_compressed;
   mongoc_gridfs_cnv_file_get_compressed_length: Tmongoc_gridfs_cnv_file_get_compressed_length;
 
+  mongoc_client_pool_destroy: Tmongoc_client_pool_destroy;
+  mongoc_client_pool_new: Tmongoc_client_pool_new;
+  mongoc_client_pool_pop: Tmongoc_client_pool_pop;
+  mongoc_client_pool_push: Tmongoc_client_pool_push;
+  mongoc_client_pool_try_pop: Tmongoc_client_pool_try_pop;
+
+  mongoc_uri_new: Tmongoc_uri_new;
+  mongoc_uri_destroy: Tmongoc_uri_destroy;
+
  {$ENDIF}
 
 implementation
@@ -1517,6 +1609,7 @@ begin
   mongoc_client_new := LoadLibmongocFunc('mongoc_client_new');
   mongoc_client_destroy := LoadLibmongocFunc('mongoc_client_destroy');
   mongoc_client_command_simple := LoadLibmongocFunc('mongoc_client_command_simple');
+  mongoc_client_command := LoadLibmongocFunc('mongoc_client_command');
   mongoc_client_get_database_names := LoadLibmongocFunc('mongoc_client_get_database_names');
   mongoc_client_get_max_bson_size := LoadLibmongocFunc('mongoc_client_get_max_bson_size');
   mongoc_client_get_max_message_size := LoadLibmongocFunc('mongoc_client_get_max_message_size');
@@ -1628,6 +1721,15 @@ begin
   mongoc_gridfs_cnv_file_set_aes_key_from_password := LoadLibmongocFunc('mongoc_gridfs_cnv_file_set_aes_key_from_password');
   mongoc_gridfs_cnv_file_is_compressed := LoadLibmongocFunc('mongoc_gridfs_cnv_file_is_compressed');
   mongoc_gridfs_cnv_file_get_compressed_length := LoadLibmongocFunc('mongoc_gridfs_cnv_file_get_compressed_length');
+
+  mongoc_client_pool_destroy := LoadLibmongocFunc('mongoc_client_pool_destroy');
+  mongoc_client_pool_new := LoadLibmongocFunc('mongoc_client_pool_new');
+  mongoc_client_pool_pop := LoadLibmongocFunc('mongoc_client_pool_pop');
+  mongoc_client_pool_push := LoadLibmongocFunc('mongoc_client_pool_push');
+  mongoc_client_pool_try_pop := LoadLibmongocFunc('mongoc_client_pool_try_pop');
+
+  mongoc_uri_new := LoadLibmongocFunc('mongoc_uri_new');
+  mongoc_uri_destroy := LoadLibmongocFunc('mongoc_uri_destroy');
 
   mongoc_init;
 end;
