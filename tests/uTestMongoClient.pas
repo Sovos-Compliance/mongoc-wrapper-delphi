@@ -131,11 +131,12 @@ end;
 procedure TestMongoClient.RunSimpleCommand_Failed;
 var
   cmd: IBsonBuffer;
+  readPrefs: IMongoReadPrefs;
 begin
   cmd := NewBsonBuffer;
   cmd.append('not existing command', 1);
   try
-    FClient.RunCommand(TEST_DB, cmd.finish, nil);
+    FClient.RunCommand(TEST_DB, cmd.finish, readPrefs);
     Fail('EMongoClient expected');
   except
     on e: EMongoClient do
@@ -155,10 +156,11 @@ var
   cmd: IBsonBuffer;
   reply: IBson;
   it: IBsonIterator;
+  readPrefs: IMongoReadPrefs;
 begin
   cmd := NewBsonBuffer;
   cmd.append('isMaster', 1);
-  reply := FClient.RunCommand(TEST_DB, cmd.finish, nil);
+  reply := FClient.RunCommand(TEST_DB, cmd.finish, readPrefs);
 
   it := reply.iterator;
   Check(it.Find('ismaster'));
