@@ -234,6 +234,7 @@ type
     function append(const Name: UTF8String; const Value: Variant): Boolean;
         overload;
     {$ENDIF}
+    function append(const Value: IBson): Boolean; overload;
     function appendVariant(const Name: UTF8String; const Value: Variant): Boolean;
     { append an array of Integers }
     function appendArray(const Name: UTF8String; const Value: TIntegerArray):
@@ -673,6 +674,7 @@ type
     function append(const Name: UTF8String; const Value: Variant): Boolean;
         overload;
     {$ENDIF}
+    function append(const Value: IBson): Boolean; overload;
     function appendVariant(const Name: UTF8String; const Value: Variant): Boolean;
     function appendArray(const Name: UTF8String; const Value: TIntegerArray):
         Boolean; overload;
@@ -836,8 +838,11 @@ begin
 end;
 
 function TBsonIterator.GetAsDateTime: TDateTime;
+var
+  utc_sec: Int64;
 begin
-  Result := UnixToDateTime(bson_iter_date_time(@FNativeIter))
+  utc_sec := bson_iter_date_time(@FNativeIter) div 1000;
+  Result := UnixToDateTime(utc_sec);
 end;
 
 function TBsonIterator.GetAsBoolean: Boolean;
@@ -1108,8 +1113,11 @@ end;
 
 function TBsonBuffer.appendDate(const Name: UTF8String; Value: TDateTime):
     Boolean;
+var
+  utc_msec: Int64;
 begin
-  Result := bson_append_date_time(GetCurrNativeBson, PAnsiChar(Name), -1, DateTimeToUnix(Value));
+  utc_msec := DateTimeToUnix(Value) * 1000;
+  Result := bson_append_date_time(GetCurrNativeBson, PAnsiChar(Name), -1, utc_msec);
 end;
 
 function TBsonBuffer.append(const Name: UTF8String; Value: Boolean): Boolean;
@@ -1155,6 +1163,11 @@ begin
   Result := appendVariant(Name, Value);
 end;
 {$ENDIF}
+
+function TBsonBuffer.append(const Value: IBson): Boolean;
+begin
+  Result := bson_concat(GetCurrNativeBson, Value.NativeBson);
+end;
 
 function TBsonBuffer.appendVariant(const Name: UTF8String; const Value:
     Variant): Boolean;
