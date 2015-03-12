@@ -836,8 +836,11 @@ begin
 end;
 
 function TBsonIterator.GetAsDateTime: TDateTime;
+var
+  utc_sec: Int64;
 begin
-  Result := UnixToDateTime(bson_iter_date_time(@FNativeIter))
+  utc_sec := bson_iter_date_time(@FNativeIter) div 1000;
+  Result := UnixToDateTime(utc_sec);
 end;
 
 function TBsonIterator.GetAsBoolean: Boolean;
@@ -1108,8 +1111,11 @@ end;
 
 function TBsonBuffer.appendDate(const Name: UTF8String; Value: TDateTime):
     Boolean;
+var
+  utc_msec: Int64;
 begin
-  Result := bson_append_date_time(GetCurrNativeBson, PAnsiChar(Name), -1, DateTimeToUnix(Value));
+  utc_msec := DateTimeToUnix(Value) * 1000;
+  Result := bson_append_date_time(GetCurrNativeBson, PAnsiChar(Name), -1, utc_msec);
 end;
 
 function TBsonBuffer.append(const Name: UTF8String; Value: Boolean): Boolean;
