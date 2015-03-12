@@ -234,6 +234,7 @@ type
     function append(const Name: UTF8String; const Value: Variant): Boolean;
         overload;
     {$ENDIF}
+    function append(const Value: IBson): Boolean; overload;
     function appendVariant(const Name: UTF8String; const Value: Variant): Boolean;
     { append an array of Integers }
     function appendArray(const Name: UTF8String; const Value: TIntegerArray):
@@ -673,6 +674,7 @@ type
     function append(const Name: UTF8String; const Value: Variant): Boolean;
         overload;
     {$ENDIF}
+    function append(const Value: IBson): Boolean; overload;
     function appendVariant(const Name: UTF8String; const Value: Variant): Boolean;
     function appendArray(const Name: UTF8String; const Value: TIntegerArray):
         Boolean; overload;
@@ -1161,6 +1163,11 @@ begin
   Result := appendVariant(Name, Value);
 end;
 {$ENDIF}
+
+function TBsonBuffer.append(const Value: IBson): Boolean;
+begin
+  Result := bson_concat(GetCurrNativeBson, Value.NativeBson);
+end;
 
 function TBsonBuffer.appendVariant(const Name: UTF8String; const Value:
     Variant): Boolean;
