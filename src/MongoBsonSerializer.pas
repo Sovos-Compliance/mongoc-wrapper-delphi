@@ -130,7 +130,7 @@ resourcestring
   SSuitableBuilderNotFoundForClass = 'Suitable builder not found for class <%s>';
   SCanTBuildPropInfoListOfANilObjec = 'Can''t build PropInfo list of a nil object';
   SObjectHasNotPublishedProperties = 'Object has not published properties. review your logic';
-  SFailedObtainingTypeDataOfObject = 'Failed obtaining TypeData of object';
+  SFailedObtainingTypeDataOfObject = 'Failed obtaining TypeData of object %s';
   SCouldNotFindClass = 'Could not find target for class %s';
 
 type
@@ -341,9 +341,13 @@ end;
 
 function GetAndCheckTypeData(AClass : TClass) : PTypeData;
 begin
+  if AClass.ClassInfo = nil then
+    raise EBsonSerializationException.Create(Format(SFailedObtainingTypeDataOfObject,
+      [AClass.ClassName]));
   Result := GetTypeData(AClass.ClassInfo);
   if Result = nil then
-    raise EBsonSerializationException.Create(SFailedObtainingTypeDataOfObject);
+    raise EBsonSerializationException.Create(Format(SFailedObtainingTypeDataOfObject,
+      [AClass.ClassName]));
   if Result.PropCount <= 0 then
     raise EBsonSerializationException.Create(SObjectHasNotPublishedProperties);
 end;
