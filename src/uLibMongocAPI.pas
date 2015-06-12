@@ -285,6 +285,11 @@ type
                                     error: bson_error_p): Pointer;
   cdecl; external LibMongoc_Dll;
 
+{ const mongoc_uri_t *
+  mongoc_client_get_uri (const mongoc_client_t *client); }
+  function mongoc_client_get_uri(const client: Pointer): Pointer;
+  cdecl; external LibMongoc_Dll;
+
 
 //
 // mongoc_write_concern_t
@@ -1142,6 +1147,11 @@ type
   procedure mongoc_uri_destroy(uri: Pointer);
   cdecl; external LibMongoc_Dll;
 
+{ const char *
+  mongoc_uri_get_database (const mongoc_uri_t *uri); }
+  function mongoc_uri_get_database(const uri: Pointer): PAnsiChar;
+  cdecl; external LibMongoc_Dll;
+
 {$ELSE}
 
   procedure LoadLibmongocLibrary(const dll: string = LibMongoc_Dll);
@@ -1199,6 +1209,7 @@ type
   Tmongoc_client_get_gridfs = function(client: Pointer;
                                        const db, prefix: PAnsiChar;
                                        error: bson_error_p): Pointer; cdecl;
+  Tmongoc_client_get_uri = function(const client: Pointer): Pointer; cdecl;
 
   Tmongoc_write_concern_new = function : Pointer; cdecl;
   Tmongoc_write_concern_destroy = procedure(write_concern: Pointer); cdecl;
@@ -1431,6 +1442,7 @@ type
 
   Tmongoc_uri_new = function (const uri_string: PAnsiChar): Pointer; cdecl;
   Tmongoc_uri_destroy = procedure (uri: Pointer); cdecl;
+  Tmongoc_uri_get_database = function (const uri: Pointer): PAnsiChar;
 
 var
   mongoc_init: Tmongoc_init;
@@ -1459,6 +1471,7 @@ var
   mongoc_client_get_database: Tmongoc_client_get_database;
   mongoc_client_get_collection: Tmongoc_client_get_collection;
   mongoc_client_get_gridfs: Tmongoc_client_get_gridfs;
+  mongoc_client_get_uri: Tmongoc_client_get_uri;
   mongoc_write_concern_new: Tmongoc_write_concern_new;
   mongoc_write_concern_destroy: Tmongoc_write_concern_destroy;
   mongoc_write_concern_copy: Tmongoc_write_concern_copy;
@@ -1568,6 +1581,7 @@ var
 
   mongoc_uri_new: Tmongoc_uri_new;
   mongoc_uri_destroy: Tmongoc_uri_destroy;
+  mongoc_uri_get_database: Tmongoc_uri_get_database;
 
  {$ENDIF}
 
@@ -1621,6 +1635,7 @@ begin
   mongoc_client_get_database := LoadLibmongocFunc('mongoc_client_get_database');
   mongoc_client_get_collection := LoadLibmongocFunc('mongoc_client_get_collection');
   mongoc_client_get_gridfs := LoadLibmongocFunc('mongoc_client_get_gridfs');
+  mongoc_client_get_uri := LoadLibmongocFunc('mongoc_client_get_uri');
   mongoc_write_concern_new := LoadLibmongocFunc('mongoc_write_concern_new');
   mongoc_write_concern_destroy := LoadLibmongocFunc('mongoc_write_concern_destroy');
   mongoc_write_concern_copy := LoadLibmongocFunc('mongoc_write_concern_copy');
@@ -1730,6 +1745,7 @@ begin
 
   mongoc_uri_new := LoadLibmongocFunc('mongoc_uri_new');
   mongoc_uri_destroy := LoadLibmongocFunc('mongoc_uri_destroy');
+  mongoc_uri_get_database := LoadLibmongocFunc('mongoc_uri_get_database');
 
   mongoc_init;
 end;

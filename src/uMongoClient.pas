@@ -33,6 +33,7 @@ type
     procedure SetReadPrefs(const APrefs: IMongoReadPrefs); override;
     function GetWriteConcern: IMongoWriteConcern; override;
     procedure SetWriteConcern(const AWriteConcern: IMongoWriteConcern); override;
+    function GetDatabaseName: UTF8String;
   public
     constructor Create(const uri_string: UTF8String); overload;
     destructor Destroy; override;
@@ -52,6 +53,7 @@ type
                        const APrefix: UTF8String = ''): IMongoGridfs;
     property MaxBsonSize: Longint read GetMaxBsonSize;
     property MaxMessageSize: Longint read GetMaxMessageSize;
+    property DatabaseName: UTF8String read GetDatabaseName;
   end;
 
   TMongoClientPool = class(TMongoObject)
@@ -91,6 +93,11 @@ begin
   if FOwnsNativeClient then
     mongoc_client_destroy(FNativeClient);
   inherited;
+end;
+
+function TMongoClient.GetDatabaseName: UTF8String;
+begin
+  Result := mongoc_uri_get_database(mongoc_client_get_uri(FNativeClient));
 end;
 
 function TMongoClient.GetDatabaseNames: TStringArray;
