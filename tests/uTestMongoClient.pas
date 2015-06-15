@@ -140,7 +140,10 @@ begin
     Fail('EMongoClient expected');
   except
     on e: EMongoClient do
-      CheckEqualsString('no such cmd: not existing command', e.Message);
+      if MongoDbV3 then
+        CheckEqualsString('no such command: not existing command', e.Message)
+      else
+        CheckEqualsString('no such cmd: not existing command', e.Message);
   end;
 end;
 
