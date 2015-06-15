@@ -61,11 +61,10 @@ begin
   coll := FDatabase.CreateCollection('test_options', true, maxSize, maxDocs, false, false);
 
   it := coll.GetStats.find('lastExtentSize');
-  CheckEquals(maxSize, it.AsInteger);
-
-  Check(it.Find('indexSizes'));
-  CheckFalse(it.subiterator.next);
-
+  if MongoDbV3 then
+    CheckEquals(maxSize, it.AsDouble)
+  else
+    CheckEquals(maxSize, it.AsInteger);
   Check(it.Find('capped'));
   Check(it.AsBoolean);
 
@@ -101,9 +100,7 @@ begin
 
   FDatabase.RunCommand(BSON(['create', COLL_NAME]));
   names := FDatabase.GetCollectionNames;
-  CheckEquals(2, Length(names));
-  CheckEqualsString(COLL_NAME, string(names[0]));
-  CheckEqualsString('system.indexes', string(names[1]));
+  Check(StrInArray(names, COLL_NAME));
 end;
 
 procedure TestMongoDatabase.HasCollection;

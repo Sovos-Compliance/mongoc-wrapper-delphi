@@ -3,7 +3,7 @@ unit uTestMongo;
 interface
 
 uses
-  TestFramework, uMongoClient, uMongoDatabase, uMongoGridfs, uDelphi5;
+  TestFramework, uMongoClient, uMongoDatabase, uMongoGridfs, uDelphi5, MongoBson;
 
 const
   DATE_TIME_EPSILON = 1000; // we ignore value less then 1 sec cause unix timestamp
@@ -13,12 +13,19 @@ const
 
 type
   TMongoTestCase = class (TTestCase)
+  private
+    FServerVersion: string;
+    function GetServerVersion: string;
+    function GetMongoDbV3: Boolean;
   protected
     FClient: TMongoClient;
     FDatabase: TMongoDatabase;
+    function StrInArray(const AArr: TStringArray; const AValue: string): Boolean;
   public
     procedure SetUp; override;
     procedure TearDown; override;
+    property ServerVersion: string read GetServerVersion;
+    property MongoDbV3: Boolean read GetMongoDbV3;
     class function NowUTC: TDateTime;
   end;
 
@@ -33,9 +40,28 @@ type
 implementation
 
 uses
-  uMongoGridfsFile, SysUtils, Windows;
+  uMongoGridfsFile, SysUtils, Windows, uMongoReadPrefs;
 
 { TMongoTestCase }
+
+function TMongoTestCase.GetMongoDbV3: Boolean;
+begin
+  Result := ServerVersion[1] = '3';
+end;
+
+function TMongoTestCase.GetServerVersion: string;
+var
+  b: IBson;
+  rp: IMongoReadPrefs;
+begin
+  if FServerVersion <> '' then
+  begin
+    Result := FServerVersion;
+    Exit;
+  end;
+  b := FClient.RunCommand(TEST_DB, BSON(['buildinfo', 1]), rp);
+  Result := b.find('version').AsUTF8String;
+end;
 
 class function TMongoTestCase.NowUTC: TDateTime;
 var
@@ -50,6 +76,20 @@ begin
   inherited;
   FClient := TMongoClient.Create('mongodb://127.0.0.1:27017/' + TEST_DB);
   FDatabase := FClient.GetDatabase(TEST_DB);
+end;
+
+function TMongoTestCase.StrInArray(const AArr: TStringArray;
+  const AValue: string): Boolean;
+var
+  i: Integer;
+begin
+  for i := 0 to Length(AArr) do
+    if AValue = AArr[i] then
+    begin
+      Result := true;
+      Exit;
+    end;
+  Result := false;
 end;
 
 procedure TMongoTestCase.TearDown;
