@@ -75,6 +75,8 @@ procedure TestMongoClient.GetDatabaseNames;
 var
   names: TStringArray;
 begin
+  FClient.GetDatabase(TEST_DB).AddUser('GetDatabaseNames', '111111', nil, nil);
+
   names := FClient.GetDatabaseNames;
   Check(Length(names) > 0);
   CheckEqualsString('admin', string(names[0]));
