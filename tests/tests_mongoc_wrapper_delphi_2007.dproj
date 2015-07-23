@@ -63,6 +63,7 @@
     <DCCReference Include="..\src\uMongoGridfs.pas" />
     <DCCReference Include="..\src\uMongoGridfsFile.pas" />
     <DCCReference Include="..\src\uMongoReadPrefs.pas" />
+    <DCCReference Include="..\src\uMongoStream.pas" />
     <DCCReference Include="..\src\uMongoWriteConcern.pas" />
     <DCCReference Include="TestMongoBson.pas" />
     <DCCReference Include="TestMongoBsonSerializer.pas" />
@@ -78,7 +79,7 @@
 </Project>
 <!-- EurekaLog First Line
 [Exception Log]
-EurekaLog Version=6104
+EurekaLog Version=6002
 Activate=0
 Activate Handle=1
 Save Log File=1
