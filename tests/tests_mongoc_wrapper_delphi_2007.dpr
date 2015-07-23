@@ -31,7 +31,8 @@ uses
   uMongoGridfsFile in '..\src\uMongoGridfsFile.pas',
   uMongoReadPrefs in '..\src\uMongoReadPrefs.pas',
   uMongoWriteConcern in '..\src\uMongoWriteConcern.pas',
-  uMongoStream in '..\src\uMongoStream.pas';
+  uMongoStream in '..\src\uMongoStream.pas',
+  uTestMongoStream in 'uTestMongoStream.pas';
 
 begin
   Main;
