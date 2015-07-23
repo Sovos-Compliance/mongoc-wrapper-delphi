@@ -133,7 +133,7 @@ begin
         raise EMongoStream.CreateFmt(SFileNotFound, [AFileName, E_FileNotFound]);
     end;
   if AEncryptionPassword <> '' then
-    FGridFile.Password := AEncryptionPassword;
+    FGridFile.Password := UTF8String(AEncryptionPassword);
 end;
 
 destructor TMongoStream.Destroy;
