@@ -7,6 +7,7 @@ program tests_mongoc_wrapper_delphi_5;
 {$R *.RES}
 
 uses
+  uLinkedListDefaultImplementor,
   Forms,
   LibBsonAPI in '..\src\LibBsonAPI.pas',
   MongoBson in '..\src\MongoBson.pas',
