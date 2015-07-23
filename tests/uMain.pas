@@ -17,7 +17,11 @@ uses
   uLibMongocAPI,
   {$ENDIF}
   TestFramework,
+  {$IFDEF VER130}
+  GUITestRunner_Legacy,
+  {$ELSE}
   GUITestRunner,
+  {$ENDIF}
   XmlTestRunner2;
 
 var
@@ -31,7 +35,11 @@ begin
     XMLTestRunner2.RunRegisteredTests(xml_filename);
   end
   else
+    {$IFDEF VER130}
+    GUITestRunner_Legacy.RunRegisteredTests;
+    {$ELSE}
     GUITestRunner.RunRegisteredTests;
+    {$ENDIF}
 end;
 
 initialization
