@@ -30,12 +30,13 @@ uses
 const
   E_FileNotFound                     = 90300;
   E_FGridFileIsNil                   = 90301;
+  E_FailedToCreateFile               = 90302;
 
   SERIALIZE_WITH_JOURNAL_BYTES_WRITTEN = 1024 * 1024 * 10; (* Serialize with Journal every 10 megs written by default *)
 
 type
   EMongoStream = class(Exception);
-  TMongoStreamOpenMode = (msmCreate, msmOpenExisting);
+  TMongoStreamOpenMode = (msmCreate, msmOpen);
   TMongoStream = class(TStream)
   private
     FGridFS : IMongoGridfs;
@@ -46,6 +47,7 @@ type
     FDB : UTF8String;
     FLastSerializeWithJournalResult: IBson;
     FSerializeWithJournalByteWritten: Cardinal;
+    FChanged: Boolean;
     procedure CheckGridFile;
     procedure CheckSerializeWithJournal; {$IFDEF DELPHI2007} inline; {$ENDIF}
     procedure SerializeWithJournal;
@@ -59,8 +61,8 @@ type
     procedure SetSize(NewSize: {$IFDef Enterprise} Int64 {$Else} longint {$EndIf}); override;
     {$ENDIF}
   public
-    constructor Create(AMongo: TMongoClient; const ADB, AFileName: UTF8String; AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags; const AEncryptionPassword: String = ''); overload;
-    constructor Create(AMongo: TMongoClient; const ADB, APrefix, AFileName: UTF8String; const AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags; const AEncryptionPassword: String = ''); overload;
+    constructor Create(AMongo: TMongoClient; const ADB, AFileName: UTF8String; AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags = []; const AEncryptionPassword: String = ''); overload;
+    constructor Create(AMongo: TMongoClient; const ADB, APrefix, AFileName: UTF8String; AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags = []; const AEncryptionPassword: String = ''); overload;
     destructor Destroy; override;
     function Read(var Buffer; Count: Longint): Longint; override;
     {$IFDEF DELPHI2007}
@@ -70,7 +72,10 @@ type
     function Seek(Offset: {$IFDef Enterprise} Int64 {$Else} longint {$EndIf}; Origin: {$IFNDEF VER130}TSeekOrigin{$Else}{$IFDef Enterprise}TSeekOrigin{$ELSE}Word{$ENDIF}{$ENDIF}): {$IFDef Enterprise} Int64 {$Else} longint {$EndIf}; override;
     {$ENDIF}
     function Write(const Buffer; Count: Longint): Longint; override;
+    procedure Flush;
 
+    property GridFS : IMongoGridfs read FGridFS;
+    property GridFSFile : IMongoGridfsFile read FGridFile;
     property LastSerializeWithJournalResult: IBson read FLastSerializeWithJournalResult;
     property Mongo: TMongoClient read FMongo;
     property SerializedWithJournal: Boolean read FSerializedWithJournal write FSerializedWithJournal default False;
@@ -89,6 +94,7 @@ const
   WAIT_FOR_JOURNAL_OPTION = 'j';
 
 resourcestring
+  SFailedToCreateFile = 'Failed to create file %s (D%d)';
   SSettingGridFSFileSizeNotSupported = 'Setting GridFS file size not supported';
   SFileNotFound = 'File %s not found (D%d)';
   SFGridFileIsNil = 'FGridFile is nil (D%d)';
@@ -97,12 +103,16 @@ resourcestring
   SStatusMustBeOKInOrderToAllowStre = 'Status must be OK in order to allow stream read operations (D%d)';
   SFailedInitializingEncryptionKey = 'Failed initializing encryption key (D%d)';
 
-constructor TMongoStream.Create(AMongo: TMongoClient; const ADB, AFileName: UTF8String; AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags; const AEncryptionPassword: String = '');
+constructor TMongoStream.Create(AMongo: TMongoClient; const ADB, AFileName: UTF8String;
+                                AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags = [];
+                                const AEncryptionPassword: String = '');
 begin
   Create(AMongo, ADB, SFs, AFileName, AMode, AFlags, AEncryptionPassword);
 end;
 
-constructor TMongoStream.Create(AMongo: TMongoClient; const ADB, APrefix, AFileName: UTF8String; const AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags; const AEncryptionPassword: String = '');
+constructor TMongoStream.Create(AMongo: TMongoClient; const ADB, APrefix, AFileName: UTF8String;
+                                AMode: TMongoStreamOpenMode; const AFlags: TMongoFlags = [];
+                                const AEncryptionPassword: String = '');
 begin
   inherited Create;
   FSerializeWithJournalByteWritten := SERIALIZE_WITH_JOURNAL_BYTES_WRITTEN;
@@ -113,6 +123,8 @@ begin
     begin
       FGridFS.RemoveFile(AFileName);
       FGridFile := FGridFS.CreateFile(AFileName, AFlags);
+      if FGridFile = nil then
+        raise EMongoStream.CreateFmt(SFailedToCreateFile, [AFileName, E_FailedToCreateFile]);
     end
     else
     begin
@@ -120,10 +132,13 @@ begin
       if FGridFile = nil then
         raise EMongoStream.CreateFmt(SFileNotFound, [AFileName, E_FileNotFound]);
     end;
+  if AEncryptionPassword <> '' then
+    FGridFile.Password := AEncryptionPassword;
 end;
 
 destructor TMongoStream.Destroy;
 begin
+  Flush;
   FGridFile := nil;
   FGridFS := nil;
   inherited;
@@ -144,6 +159,7 @@ end;
 function TMongoStream.Read(var Buffer; Count: Longint): Longint;
 begin
   CheckGridFile;
+  Flush;
   Result := FGridFile.Read(Buffer, Count);
 end;
 
@@ -154,6 +170,7 @@ function TMongoStream.Seek(Offset: {$IFDef Enterprise} Int64 {$Else} longint {$E
 {$ENDIF}
 begin
   CheckGridFile;
+  Flush;
   FGridFile.Seek(Offset, TSeekOrigin(Origin));
   Result := FGridFile.Position;
 end;
@@ -161,6 +178,8 @@ end;
 {$IFDEF DELPHI2007}
 function TMongoStream.Seek(const Offset: Int64; Origin: TSeekOrigin): Int64;
 begin
+  CheckGridFile;
+  Flush;
   FGridFile.Seek(Offset, Origin);
   Result := FGridFile.Position;
 end;
@@ -200,6 +219,14 @@ begin
     end;
 end;
 
+procedure TMongoStream.Flush;
+begin
+  if not FChanged then
+    exit;
+  FGridFile.Save;
+  FChanged := False;
+end;
+
 {$IFDEF DELPHI2007}
 procedure TMongoStream.SetSize64(const NewSize : Int64);
 begin
@@ -212,6 +239,7 @@ begin
   Result := FGridFile.Write(Buffer, Count);
   inc(FBytesWritten, Result);
   CheckSerializeWithJournal;
+  FChanged := Result > 0;
 end;
 
 end.
