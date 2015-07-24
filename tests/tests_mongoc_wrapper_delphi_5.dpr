@@ -33,7 +33,10 @@ uses
   uMongoGridfs in '..\src\uMongoGridfs.pas',
   uMongoGridfsFile in '..\src\uMongoGridfsFile.pas',
   uTestMongoGridfs in 'uTestMongoGridfs.pas',
-  uTestMongoGridfsFile in 'uTestMongoGridfsFile.pas';
+  uTestMongoGridfsFile in 'uTestMongoGridfsFile.pas',
+  uMongoStream in '..\src\uMongoStream.pas',
+  uTestMongoStream in 'uTestMongoStream.pas';
+
 
 begin
   Main;
