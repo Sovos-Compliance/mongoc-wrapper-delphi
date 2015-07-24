@@ -7,7 +7,7 @@ uses
 
 const
   (* PLEASE!!! maintain this constant in sync with the dll driver version this code operates with *)
-  LibBson_DllVersion = '1-1-0';
+  LibBson_DllVersion = '1-1-5';
 
   CPUType = {$IFDEF WIN64} '64' {$ELSE} '32' {$ENDIF};
   ConfigType = {$IFDEF DEBUG} 'd' {$ELSE} 'r' {$ENDIF};
