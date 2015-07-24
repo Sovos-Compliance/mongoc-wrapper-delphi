@@ -26,6 +26,8 @@ type
     procedure WriteAndReadBackSomeChunks;
     procedure WriteAndReadBackSomeChunksTryBoundaries;
     procedure StressWriteReads;
+    procedure Write_AndExpandStreamWithSetSize;
+    procedure Write_SerializedWithJournal;
   end;
 
 implementation
@@ -273,6 +275,101 @@ begin
     CheckEquals(11, FFile.Size);
   finally
     FFile.Free;
+  end;
+end;
+
+procedure TestMongoStream.Write_AndExpandStreamWithSetSize;
+const
+  TOTAL_SIZE = 1024 * 1024 + 128 * 1024;
+var
+  Buf : UTF8String;
+begin
+  FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmCreate);
+  try
+    FFile.Size := 0; // This should work
+    //FFile.Size := Length(HELLO); // Pre-alloc data, this should work but it's currently failing
+    CheckEquals(11, FFile.Write(HELLO[1], Length(HELLO)));
+    try
+      FFile.Size := FFile.Size - 1;
+      Fail('Should not be able to attempt size reduction of TMongoStream object');
+    except
+      on EMongoStream do;
+    end;
+    FFile.Size := FFile.Size; // This should work, attempt simply exists when size is equal to current
+    FFile.Size := TOTAL_SIZE;
+  finally
+    FFile.Free;
+  end;
+
+  FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmOpen);
+  try
+    CheckEquals(TOTAL_SIZE, FFile.Size);
+    SetLength(Buf, length(HELLO));
+    FFile.Read(Buf[1], length(HELLO));
+    CheckEqualsString(Buf, HELLO);
+    SetLength(Buf, TOTAL_SIZE);
+    FFile.Position := 0;
+    CheckEquals(TOTAL_SIZE, FFile.Read(Buf[1], TOTAL_SIZE));
+  finally
+    FFile.Free;
+  end;
+end;
+
+procedure TestMongoStream.Write_SerializedWithJournal;
+const
+  ONE_MB = 1024 * 1024;
+  BufSize = ONE_MB;
+  Loops = 40;
+var
+  i : integer;
+  WriteBuffer, ReadBuffer : Pointer;
+  GetLastErrorOkAttribute, GetLastErrorErrAttribute : IBsonIterator;
+begin
+  GetMem(WriteBuffer, BufSize);
+  try
+    GetMem(ReadBuffer, BufSize);
+    try
+      for i := 0 to BufSize - 1 do
+        PAnsiChar(WriteBuffer)[i] := AnsiChar(Random(256));
+      FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmCreate);
+      try
+        FFile.SerializedWithJournal := True;
+        FFile.SerializeWithJournalByteWritten := 10 * ONE_MB;
+        for i := 1 to Loops do
+          begin
+            CheckEquals(BufSize, FFile.Write(WriteBuffer^, BufSize));
+            if Cardinal(i * BufSize) > FFile.SerializeWithJournalByteWritten then
+              begin
+                Check(FFile.LastSerializeWithJournalResult <> nil, 'LastSerializeWithJournalResult should be <> nil');
+                GetLastErrorOkAttribute := FFile.LastSerializeWithJournalResult.find('ok');
+                Check(GetLastErrorOkAttribute <> nil, 'OK attribute should be <> nil');
+                CheckEquals(1, GetLastErrorOkAttribute.Value, 'OK attribute should be equals to 1');
+                GetLastErrorErrAttribute := FFile.LastSerializeWithJournalResult.find('err');
+                Check(GetLastErrorErrAttribute <> nil, 'err attribute should be <> nil');
+                Check(GetLastErrorErrAttribute.Kind = BSON_TYPE_NULL, 'err attribute should be NULL');
+              end
+            else Check(FFile.LastSerializeWithJournalResult = nil, 'LastSerializeWithJournalResult must be = nil');
+          end;
+      finally
+        FFile.Free;
+      end;
+
+      FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmOpen);
+      try
+        CheckEquals(BufSize * Loops, FFile.Size);
+        for i := 1 to Loops do
+          begin
+            CheckEquals(BufSize, FFile.Read(ReadBuffer^, BufSize));
+            Check(CompareMem(ReadBuffer, WriteBuffer, BufSize));
+          end;
+      finally
+        FFile.Free;
+      end;
+    finally
+      FreeMem(ReadBuffer);
+    end;
+  finally
+    FreeMem(WriteBuffer);
   end;
 end;
 

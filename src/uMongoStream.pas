@@ -23,14 +23,15 @@ unit uMongoStream;
 interface
 
 uses
-  Classes, uMongoGridfs, uMongoGridfsFile, uMongoClient, MongoBson, SysUtils;
+  Classes, uMongoGridfs, uMongoGridfsFile, uMongoClient, MongoBson, SysUtils, uDelphi5;
 
 {$I MongoC_defines.inc}
 
 const
-  E_FileNotFound                     = 90300;
-  E_FGridFileIsNil                   = 90301;
-  E_FailedToCreateFile               = 90302;
+  E_FileNotFound       = 90300;
+  E_FGridFileIsNil     = 90301;
+  E_FailedToCreateFile = 90302;
+  E_CantReduceSize     = 90303;
 
   SERIALIZE_WITH_JOURNAL_BYTES_WRITTEN = 1024 * 1024 * 10; (* Serialize with Journal every 10 megs written by default *)
 
@@ -48,11 +49,12 @@ type
     FLastSerializeWithJournalResult: IBson;
     FSerializeWithJournalByteWritten: Cardinal;
     FChanged: Boolean;
-    procedure CheckGridFile;
-    procedure CheckSerializeWithJournal; {$IFDEF DELPHI2007} inline; {$ENDIF}
+    procedure CheckGridFile; {$IFDEF DELPHI2007}{$IFNDEF DEBUG} inline; {$ENDIF}{$ENDIF}
+    procedure CheckSerializeWithJournal; {$IFDEF DELPHI2007}{$IFNDEF DEBUG} inline; {$ENDIF}{$ENDIF}
     procedure SerializeWithJournal;
+    procedure Internal_SetSize(const ANewSize: Int64);
   protected
-    function GetSize: {$IFNDEF VER130} Int64; override; {$ELSE}{$IFDEF Enterprise} Int64; override; {$ELSE} Longint; {$ENDIF}{$ENDIF}
+    function GetSize: {$IFNDEF VER130} Int64; override; {$ELSE}{$IFDEF Enterprise} Int64; override; {$ELSE} Longint; override;{$ENDIF}{$ENDIF}
     {$IFDEF DELPHI2007}
     procedure SetSize(NewSize: longint); override;
     procedure SetSize(const NewSize: Int64); overload; override;
@@ -74,10 +76,10 @@ type
     function Write(const Buffer; Count: Longint): Longint; override;
     procedure Flush;
 
+    property Mongo: TMongoClient read FMongo;
     property GridFS : IMongoGridfs read FGridFS;
     property GridFSFile : IMongoGridfsFile read FGridFile;
     property LastSerializeWithJournalResult: IBson read FLastSerializeWithJournalResult;
-    property Mongo: TMongoClient read FMongo;
     property SerializedWithJournal: Boolean read FSerializedWithJournal write FSerializedWithJournal default False;
     property SerializeWithJournalByteWritten : Cardinal read FSerializeWithJournalByteWritten write FSerializeWithJournalByteWritten default SERIALIZE_WITH_JOURNAL_BYTES_WRITTEN;
     property Size: {$IFNDEF VER130}Int64 {$ELSE}{$IFDef Enterprise}Int64 {$ELSE}Longint{$ENDIF}{$ENDIF} read GetSize write {$IFDEF DELPHI2007}SetSize64{$ELSE}SetSize{$ENDIF};
@@ -86,7 +88,7 @@ type
 implementation
 
 uses
-  uMongo;
+  uMongo, uMongoReadPrefs, Math;
 
 const
   SFs = 'fs';
@@ -94,10 +96,10 @@ const
   WAIT_FOR_JOURNAL_OPTION = 'j';
 
 resourcestring
+  SReducingSizeNotSupported = 'Reducing the size of a TMongoStream object is not supported (D%d)';
   SFailedToCreateFile = 'Failed to create file %s (D%d)';
   SSettingGridFSFileSizeNotSupported = 'Setting GridFS file size not supported';
   SFileNotFound = 'File %s not found (D%d)';
-  SFGridFileIsNil = 'FGridFile is nil (D%d)';
   SFGridFSIsNil = 'FGridFS is nil (D%d)';
   SStreamNotCreatedForWriting = 'Stream not created for writing (D%d)';
   SStatusMustBeOKInOrderToAllowStre = 'Status must be OK in order to allow stream read operations (D%d)';
@@ -145,6 +147,8 @@ begin
 end;
 
 procedure TMongoStream.CheckGridFile;
+const
+  SFGridFileIsNil = 'FGridFile is nil (D%d)';
 begin
   if FGridFile = nil then
     raise EMongoStream.CreateFmt(SFGridFileIsNil, [E_FGridFileIsNil]);
@@ -185,29 +189,74 @@ begin
 end;
 {$ENDIF}
 
+procedure TMongoStream.Internal_SetSize(const ANewSize: Int64);
+const
+  ONE_BYTE = 1;
+var
+  Buf : Pointer;
+  ASize : Int64;
+  AChunkSize : Cardinal;
+  LastPosition, ExpandedSize : Int64;
+begin
+  ASize := Size;
+  if ANewSize < ASize then
+    raise EMongoStream.CreateFmt(SReducingSizeNotSupported, [E_CantReduceSize]);
+  if ANewSize = ASize then
+    exit;
+  AChunkSize := GridFSFile.ChunkSize;
+  GetMem(Buf, AChunkSize); // We won't initialize the buffer in purpose here
+  try
+    if ASize > 0 then
+      begin
+        // We can't set GridFS file at the end for some reason.
+        // It seems to be a limitation on implementation at C level.
+        // So we will set to one byte less than the end, and then read one byte.
+        // In that way, we will be at the end for sure and we can start adding
+        // chunks to expand the stream
+        Position := ASize - ONE_BYTE;
+        Assert(Read(Buf^, ONE_BYTE) = ONE_BYTE);
+      end;
+    LastPosition := GridFSFile.Position;
+    try
+      ExpandedSize := ASize;
+      repeat
+        inc(ExpandedSize, Write(Buf^, Min(AChunkSize, ANewSize - ExpandedSize)));
+      until ExpandedSize >= ANewSize;
+    finally
+      // We want to leave the Stream as it was, even if attempt to expand fails, therefore
+      // the usage of a try..finally block here
+      Position := LastPosition;
+    end;
+  finally
+    FreeMem(Buf);
+  end;
+end;
+
 {$IFDEF DELPHI2007}
 procedure TMongoStream.SetSize(NewSize: longint);
 {$ELSE}
 procedure TMongoStream.SetSize(NewSize: {$IFDef Enterprise} Int64 {$Else} longint {$EndIf});
 {$ENDIF}
 begin
-  raise EMongoStream.Create(SSettingGridFSFileSizeNotSupported);
+  Internal_SetSize(NewSize);
 end;
 
 {$IFDEF DELPHI2007}
 procedure TMongoStream.SetSize(const NewSize: Int64);
 begin
-  raise EMongoStream.Create(SSettingGridFSFileSizeNotSupported);
+  Internal_SetSize(NewSize);
 end;
 {$ENDIF}
 
 procedure TMongoStream.SerializeWithJournal;
 var
   Cmd : IBson;
+  prefs : IMongoReadPrefs;
 begin
+  prefs := nil;
   (* This command will cause Mongo database to wait until Journal file is written before returning *)
   Cmd := BSON([GET_LAST_ERROR_CMD, 1, WAIT_FOR_JOURNAL_OPTION, 1]);
-  FLastSerializeWithJournalResult := FMongo.RunCommand(FDB, Cmd, nil);
+  FLastSerializeWithJournalResult := FMongo.RunCommand(FDB, Cmd, prefs);
 end;
 
 procedure TMongoStream.CheckSerializeWithJournal;
