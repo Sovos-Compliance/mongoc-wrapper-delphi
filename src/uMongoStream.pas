@@ -134,7 +134,7 @@ begin
       if FGridFile = nil then
         raise EMongoStream.CreateFmt(SFileNotFound, [AFileName, E_FileNotFound]);
     end;
-  if AEncryptionPassword <> '' then
+  if (AFlags * [mfEncrypt, mfDecrypt] <> []) and (AEncryptionPassword <> '') then
     FGridFile.Password := UTF8String(AEncryptionPassword);
 end;
 
