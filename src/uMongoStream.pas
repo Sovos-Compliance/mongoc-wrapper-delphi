@@ -196,7 +196,7 @@ var
   Buf : Pointer;
   ASize : Int64;
   AChunkSize : Cardinal;
-  LastPosition, ExpandedSize : Int64;
+  LastPosition : Int64;
 begin
   ASize := Size;
   if ANewSize < ASize then
@@ -206,25 +206,24 @@ begin
   AChunkSize := GridFSFile.ChunkSize;
   GetMem(Buf, AChunkSize); // We won't initialize the buffer in purpose here
   try
-    if ASize > 0 then
-      begin
-        // We can't set GridFS file at the end for some reason.
-        // It seems to be a limitation on implementation at C level.
-        // So we will set to one byte less than the end, and then read one byte.
-        // In that way, we will be at the end for sure and we can start adding
-        // chunks to expand the stream
-        Position := ASize - ONE_BYTE;
-        Assert(Read(Buf^, ONE_BYTE) = ONE_BYTE);
-      end;
     LastPosition := GridFSFile.Position;
     try
-      ExpandedSize := ASize;
+      if ASize > 0 then
+        begin
+          // We can't set GridFS file at the end for some reason.
+          // It seems to be a limitation on implementation at C level.
+          // So we will set to one byte less than the end, and then read one byte.
+          // In that way, we will be at the end for sure and we can start adding
+          // chunks to expand the stream
+          Position := ASize - ONE_BYTE;
+          Assert(Read(Buf^, ONE_BYTE) = ONE_BYTE);
+        end;
       repeat
-        inc(ExpandedSize, Write(Buf^, Min(AChunkSize, ANewSize - ExpandedSize)));
-      until ExpandedSize >= ANewSize;
+        inc(ASize, Write(Buf^, Min(AChunkSize, ANewSize - ASize)));
+      until ASize >= ANewSize;
     finally
       // We want to leave the Stream as it was, even if attempt to expand fails, therefore
-      // the usage of a try..finally block here
+      // the usage of a try..finally block here to reset Position back to its state 
       Position := LastPosition;
     end;
   finally
