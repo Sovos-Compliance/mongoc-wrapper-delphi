@@ -25,6 +25,7 @@ type
     procedure Write_Read;
     procedure Compressed;
     procedure Encrypted;
+    procedure Open_FileNotFound;
     procedure WriteAndReadBackSomeChunks;
     procedure WriteAndReadBackSomeChunksTryBoundaries;
     procedure StressWriteReads;
@@ -170,6 +171,12 @@ begin
 
   FFile := FGridfs.FindFile;
   CheckEquals(Length(TEST_DATA), FFile.Read(FBuf, SizeOf(FBuf)));
+end;
+
+procedure TestMongoGridfsFile.Open_FileNotFound;
+begin
+  //CreateFileStub('test', TEST_DATA);
+  FFile := FGridfs.FindFile;
 end;
 
 procedure TestMongoGridfsFile.Seek;
