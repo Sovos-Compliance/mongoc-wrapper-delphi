@@ -26,6 +26,7 @@ type
     procedure WriteAndReadBackSomeChunks;
     procedure WriteAndReadBackSomeChunksTryBoundaries;
     procedure StressWriteReads;
+    procedure Write_Close_Open_Seek;
     procedure Write_AndExpandStreamWithSetSize;
     procedure Write_SerializedWithJournal;
   end;
@@ -273,6 +274,24 @@ begin
   FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmOpen);
   try
     CheckEquals(11, FFile.Size);
+  finally
+    FFile.Free;
+  end;
+end;
+
+procedure TestMongoStream.Write_Close_Open_Seek;
+begin
+  FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmCreate);
+  try
+    CheckEquals(11, FFile.Write(HELLO[1], Length(HELLO)));
+  finally
+    FFile.Free;
+  end;
+
+  FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmOpen);
+  try
+    // Let's try to reproduce issue reported by Alex ( https://jira.mongodb.org/browse/CDRIVER-510 )
+    FFile.Position := 5;
   finally
     FFile.Free;
   end;
