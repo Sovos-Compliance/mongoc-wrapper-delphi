@@ -355,40 +355,40 @@ begin
     try
       for i := 0 to BufSize - 1 do
         PAnsiChar(WriteBuffer)[i] := AnsiChar(Random(256));
-        FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmCreate, AFlags, '123');
-        try
-          FFile.SerializedWithJournal := True;
-          FFile.SerializeWithJournalByteWritten := 10 * ONE_MB;
-          for i := 1 to Loops do
-            begin
-              CheckEquals(BufSize, FFile.Write(WriteBuffer^, BufSize));
-              if Cardinal(i * BufSize) > FFile.SerializeWithJournalByteWritten then
-                begin
-                  Check(FFile.LastSerializeWithJournalResult <> nil, 'LastSerializeWithJournalResult should be <> nil');
-                  GetLastErrorOkAttribute := FFile.LastSerializeWithJournalResult.find('ok');
-                  Check(GetLastErrorOkAttribute <> nil, 'OK attribute should be <> nil');
-                  CheckEquals(1, GetLastErrorOkAttribute.Value, 'OK attribute should be equals to 1');
-                  GetLastErrorErrAttribute := FFile.LastSerializeWithJournalResult.find('err');
-                  Check(GetLastErrorErrAttribute <> nil, 'err attribute should be <> nil');
-                  Check(GetLastErrorErrAttribute.Kind = BSON_TYPE_NULL, 'err attribute should be NULL');
-                end
-              else Check(FFile.LastSerializeWithJournalResult = nil, 'LastSerializeWithJournalResult must be = nil');
-            end;
-        finally
-          FFile.Free;
-        end;
+      FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmCreate, AFlags, '123');
+      try
+        FFile.SerializedWithJournal := True;
+        FFile.SerializeWithJournalByteWritten := 10 * ONE_MB;
+        for i := 1 to Loops do
+          begin
+            CheckEquals(BufSize, FFile.Write(WriteBuffer^, BufSize));
+            if Cardinal(i * BufSize) > FFile.SerializeWithJournalByteWritten then
+              begin
+                Check(FFile.LastSerializeWithJournalResult <> nil, 'LastSerializeWithJournalResult should be <> nil');
+                GetLastErrorOkAttribute := FFile.LastSerializeWithJournalResult.find('ok');
+                Check(GetLastErrorOkAttribute <> nil, 'OK attribute should be <> nil');
+                CheckEquals(1, GetLastErrorOkAttribute.Value, 'OK attribute should be equals to 1');
+                GetLastErrorErrAttribute := FFile.LastSerializeWithJournalResult.find('err');
+                Check(GetLastErrorErrAttribute <> nil, 'err attribute should be <> nil');
+                Check(GetLastErrorErrAttribute.Kind = BSON_TYPE_NULL, 'err attribute should be NULL');
+              end
+            else Check(FFile.LastSerializeWithJournalResult = nil, 'LastSerializeWithJournalResult must be = nil');
+          end;
+      finally
+        FFile.Free;
+      end;
 
-        FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmOpen, AFlags, '123');
-        try
-          CheckEquals(BufSize * Loops, FFile.Size);
-          for i := 1 to Loops do
-            begin
-              CheckEquals(BufSize, FFile.Read(ReadBuffer^, BufSize));
-              Check(CompareMem(ReadBuffer, WriteBuffer, BufSize), 'Data read back doesn''t match data written originally');
-            end;
-        finally
-          FFile.Free;
-        end;
+      FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test_write', msmOpen, AFlags, '123');
+      try
+        CheckEquals(BufSize * Loops, FFile.Size);
+        for i := 1 to Loops do
+          begin
+            CheckEquals(BufSize, FFile.Read(ReadBuffer^, BufSize));
+            Check(CompareMem(ReadBuffer, WriteBuffer, BufSize), 'Data read back doesn''t match data written originally');
+          end;
+      finally
+        FFile.Free;
+      end;
     finally
       FreeMem(ReadBuffer);
     end;
