@@ -1442,7 +1442,7 @@ type
 
   Tmongoc_uri_new = function (const uri_string: PAnsiChar): Pointer; cdecl;
   Tmongoc_uri_destroy = procedure (uri: Pointer); cdecl;
-  Tmongoc_uri_get_database = function (const uri: Pointer): PAnsiChar;
+  Tmongoc_uri_get_database = function (const uri: Pointer): PAnsiChar; cdecl;
 
 var
   mongoc_init: Tmongoc_init;
