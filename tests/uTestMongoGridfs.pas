@@ -14,6 +14,7 @@ type
     procedure CreateFile;
     procedure FindFile;
     procedure FindFileByName;
+    procedure Open_FileNotFound;
   end;
 
 implementation
@@ -75,6 +76,16 @@ var
 begin
   names := FGridfs.GetFileNames;
   CheckEquals(0, Length(names));
+end;
+
+procedure TestMongoGridfs.Open_FileNotFound;
+begin
+  try
+    FGridfs.FindFile;
+    Fail('Should have raised EMongoGridfs');
+  except
+    on E : EMongoGridfs do CheckEqualsString('File not found', E.Message);
+  end;
 end;
 
 initialization
