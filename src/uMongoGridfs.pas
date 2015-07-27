@@ -40,6 +40,7 @@ type
     FNativeGridfs: Pointer;
     FError: bson_error_t;
     function FlagsToNative(AFlags: TMongoFlags): Integer;
+    procedure RaiseFindFileError(err: bson_error_p);
   public
     constructor Create(ANativeGridfs: Pointer);
     destructor Destroy; override;
@@ -102,11 +103,12 @@ var
   nativeFile: Pointer;
   err: bson_error_t;
 begin
+  FillChar(err, SizeOf(bson_error_t), 0);
   nativeFile := mongoc_gridfs_find_one_cnv_by_filename(FNativeGridfs,
                                                        PAnsiChar(AName),
                                                        @err, FlagsToNative(AFlags));
   if nativeFile = nil then
-    raise EMongoGridfs.Create(@err);
+    RaiseFindFileError(@err);
 
   Result := NewMongoGridfsFile(nativeFile);
 end;
@@ -131,6 +133,7 @@ var
   err: bson_error_t;
   query: IBson;
 begin
+  FillChar(err, SizeOf(bson_error_t), 0);
   if AQuery = nil then
     query := NewBson
   else
@@ -140,7 +143,7 @@ begin
                                            query.NativeBson, @err,
                                            FlagsToNative(AFlags));
   if nativeFile = nil then
-    raise EMongoGridfs.Create('File not found');
+    RaiseFindFileError(@err);
 
   Result := NewMongoGridfsFile(nativeFile);
 end;
@@ -170,6 +173,14 @@ begin
   finally
     coll.Free;
   end;
+end;
+
+procedure TMongoGridfs.RaiseFindFileError(err: bson_error_p);
+begin
+  if err.code = 0 then
+    raise EMongoGridfs.Create('File not found')
+  else
+    raise EMongoGridfs.Create(@err);
 end;
 
 procedure TMongoGridfs.RemoveFile(const AName: UTF8String);
