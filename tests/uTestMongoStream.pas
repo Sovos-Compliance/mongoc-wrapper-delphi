@@ -18,6 +18,7 @@ type
     procedure Read;
     procedure Seek;
     procedure SeekEnd;
+    procedure SeekEmptyFile;
     procedure Position;
     procedure Size;
     procedure Write_Seek_Read;
@@ -192,6 +193,17 @@ begin
     FFile.Seek(5, soBeginning);
     CheckEquals(9, FFile.Read(FBuf, SizeOf(FBuf)));
     Check(CompareMem(@TEST_DATA[6], @FBuf, 9));
+  finally
+    FFile.Free;
+  end;
+end;
+
+procedure TestMongoStream.SeekEmptyFile;
+begin
+  FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test', msmCreate);
+  try
+    FFile.Seek(0, soBeginning);
+    CheckEquals(0, FFile.Position);
   finally
     FFile.Free;
   end;
