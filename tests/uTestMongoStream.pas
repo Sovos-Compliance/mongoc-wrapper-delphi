@@ -165,7 +165,7 @@ begin
     CheckEquals(6, FFile.Position);
 
     FFile.Seek(-2, soEnd);
-    CheckEquals(11, FFile.Position);
+    CheckEquals(12, FFile.Position);
   finally
     FFile.Free;
   end;
@@ -204,8 +204,8 @@ begin
   FFile := TMongoStream.Create(FClient, FDatabase.Name, 'test_gfs', 'test', msmOpen);
   try
     FFile.Seek(-3, soEnd);
-    CheckEquals(4, FFile.Read(FBuf, SizeOf(FBuf)));
-    Check(CompareMem(@TEST_DATA[11], @FBuf, 4));
+    CheckEquals(3, FFile.Read(FBuf, SizeOf(FBuf)), 'Failed reading file');
+    Check(CompareMem(@TEST_DATA[12], @FBuf, 3));
   finally
     FFile.Free;
   end;
