@@ -1107,28 +1107,31 @@ var
 begin
   while Source.next do
   begin
-    if (Source.kind = BSON_TYPE_DOCUMENT)
-       and (Source.key = SERIALIZED_ATTRIBUTE_COLLECTION_KEY + SERIALIZED_ATTRIBUTE_COLLECTION_VALUE) then
+    if (Source.kind <> BSON_TYPE_DOCUMENT) and (Source.kind <> BSON_TYPE_ARRAY) then
+      continue;
+
+    subit := Source.subiterator;
+    key := '';
+    valit := nil;
+    while subit.next and (subit.kind = BSON_TYPE_DOCUMENT) do
     begin
-      key := '';
-      subit := Source.subiterator;
-      if subit.next and (subit.kind = BSON_TYPE_DOCUMENT)
-       and (subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_KEY) then
+      if subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_KEY then
       begin
         keyit := subit.subiterator;
         keyit.next;
         if keyit.kind <> BSON_TYPE_UTF8 then
           raise EBsonSerializer.Create('Only string key supported for ' + TCnvStringDictionary.ClassName);
         key := keyit.AsUTF8String;
-        if subit.next and (subit.kind = BSON_TYPE_DOCUMENT)
-          and (subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_VALUE) then
-        begin
-          valit := subit.subiterator;
-          valit.next;
-          DeserializeValue(ADic, AContext, valit, key);
-        end;
+      end
+      else if subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_VALUE then
+      begin
+        valit := subit.subiterator;
+        valit.next;
+
       end;
     end;
+    if (key <> '') and (valit <> nil) then
+      DeserializeValue(ADic, AContext, valit, key);
   end;
 end;
 
