@@ -43,15 +43,9 @@ begin
 end;
 
 initialization
-{$IFDEF OnDemandLibbsonLoad}
-  if (ParamCount > 0) and (LowerCase(ExtractFileExt(ParamStr(1))) = '.dll') then
-    LoadLibbsonLibrary(ParamStr(1))
-  else
-    LoadLibbsonLibrary;
-{$ENDIF}
 {$IFDEF OnDemandMongocLoad}
-  if (ParamCount > 1) and (LowerCase(ExtractFileExt(ParamStr(2))) = '.dll') then
-    LoadLibmongocLibrary(ParamStr(2))
+  if (ParamCount > 0) and (LowerCase(ExtractFileExt(ParamStr(1))) = '.dll') then
+    LoadLibmongocLibrary(ParamStr(1))
   else
     LoadLibmongocLibrary;
 {$ENDIF}

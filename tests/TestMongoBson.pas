@@ -1566,10 +1566,11 @@ end;
 procedure TestIBsonIterator.TestTryToReadPastEnd;
 begin
   FIBsonIterator := b.find('SUBOBJ');
-  while FIBsonIterator.Next do;
-    FIBsonIterator.Kind;
-  CheckFalse(FIBsonIterator.Next);
-  Check(BSON_TYPE_EOD = FIBsonIterator.Kind);
+  while FIBsonIterator.Next do
+  begin
+    if FIBsonIterator.Kind = BSON_TYPE_EOD then
+      CheckFalse(FIBsonIterator.Next);
+  end;
 end;
 
 procedure TestIBsonIterator.Testsubiterator;

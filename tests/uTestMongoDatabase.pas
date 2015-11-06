@@ -147,11 +147,13 @@ end;
 procedure TestMongoDatabase.RunCommand;
 var
   cmd, reply: IBson;
+  json: string;
 begin
   cmd := BSON(['create', 'test']);
 
   reply := FDatabase.RunCommand(cmd);
-  CheckEqualsString('{ "ok" : 1.000000 }', string(reply.asJson));
+  json := string(reply.asJson);
+  Check((json = '{ "ok" : 1.000000 }') or (json = '{ "ok" : 1 }'));
   reply := nil;
   try
     reply := FDatabase.RunCommand(cmd);
