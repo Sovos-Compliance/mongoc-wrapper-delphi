@@ -12,6 +12,8 @@ type
     FFile: IMongoGridfsFile;
     FBuf: array[0..255] of AnsiChar;
     procedure Check_Write_Read(AWriteFlags, AReadFlags: TMongoFlags; ASize: NativeUint);
+  public
+    procedure TearDown; override;
   published
     procedure Getters;
     procedure Setters;
@@ -262,6 +264,13 @@ begin
   finally
     FreeMem(Buffer);
   end;
+end;
+
+procedure TestMongoGridfsFile.TearDown;
+begin
+  // ensure file destroyed before gridfs to avoid access violations
+  FFile := nil;
+  inherited;
 end;
 
 procedure TestMongoGridfsFile.Write;

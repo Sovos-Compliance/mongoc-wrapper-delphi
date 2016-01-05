@@ -1491,7 +1491,7 @@ function TBsonBuffer.startArray(const Name: UTF8String): Boolean;
 var
   child: Pointer;
 begin
-  child := bson_new;
+  GetMem(child, SizeOf(bson_t));
   Result := bson_append_array_begin(GetCurrNativeBson, PAnsiChar(Name), -1, child);
   FSubNativeBson.Push(child);
 end;
@@ -1502,7 +1502,7 @@ var
 begin
   child := FSubNativeBson.Pop;
   Result := bson_append_array_end(GetCurrNativeBson, child);
-  bson_destroy(child);
+  FreeMem(child);
 end;
 
 function TBsonBuffer.size: LongWord;

@@ -35,6 +35,7 @@ type
     procedure CreateFileStub(const AName: UTF8String; const AData: UTF8String = '');
   public
     procedure SetUp; override;
+    procedure TearDown; override;
   end;
 
 implementation
@@ -121,6 +122,12 @@ begin
   except
     // just ensure it's clean
   end;
+end;
+
+procedure TMongoGridfsTestCase.TearDown;
+begin
+  FGridfs := nil;
+  inherited;
 end;
 
 end.
