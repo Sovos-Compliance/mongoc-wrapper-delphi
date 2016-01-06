@@ -109,6 +109,7 @@ procedure bson_iter_binary(const iter : bson_iter_p; subtype : PBsonSubtype; bin
 {$ELSE}
 
 procedure LoadLibbsonLibrary(const dll: string = LibBson_DLL);
+procedure LoadLibbsonFunctions(const dll: HMODULE);
 procedure FreeLibbsonLibrary;
 
 type
@@ -267,20 +268,20 @@ resourcestring
   
 var
   HLibbson: HMODULE;
-  
-procedure LoadLibbsonLibrary(const dll: string);
+
+procedure LoadLibbsonFunctions(const dll: HMODULE);
+var
+  dllHandle: HMODULE;
+
   function LoadLibbsonFunc(const name: PAnsiChar) : Pointer;
   begin
-    Result := GetProcAddress(HLibbson, name);
+    Result := GetProcAddress(dllHandle, name);
     if Result = nil then
       raise Exception.CreateFmt(SLoadFuncFailed, [name, dll]);
   end;
 begin
-  if HLibbson <> 0 then
-    exit;
-  HLibbson := LoadLibraryA(PAnsiChar(AnsiString(dll)));
-  if HLibbson = 0 then
-    raise Exception.CreateFmt(SLoadDllFailed, [dll]);
+  dllHandle := dll;
+
   bson_free := LoadLibbsonFunc('bson_free');
   bson_strfreev := LoadLibbsonFunc('bson_strfreev');
   bson_new := LoadLibbsonFunc('bson_new');
@@ -338,6 +339,17 @@ begin
   bson_iter_regex := LoadLibbsonFunc('bson_iter_regex');
   bson_iter_timestamp := LoadLibbsonFunc('bson_iter_timestamp');
   bson_iter_binary := LoadLibbsonFunc('bson_iter_binary');
+end;
+  
+procedure LoadLibbsonLibrary(const dll: string);
+
+begin
+  if HLibbson <> 0 then
+    exit;
+  HLibbson := LoadLibraryA(PAnsiChar(AnsiString(dll)));
+  if HLibbson = 0 then
+    raise Exception.CreateFmt(SLoadDllFailed, [dll]);
+  LoadLibbsonFunctions(HLibbson);
 end;
 
 procedure FreeLibbsonLibrary;

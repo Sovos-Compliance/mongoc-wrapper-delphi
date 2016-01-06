@@ -1609,6 +1609,7 @@ begin
   HLibmongoc := LoadLibraryA(PAnsiChar(AnsiString(dll)));
   if HLibmongoc = 0 then
     raise Exception.CreateFmt(SLoadDllFailed, [dll]);
+  LoadLibbsonFunctions(HLibmongoc);
   mongoc_init := LoadLibmongocFunc('mongoc_init');
   mongoc_cleanup := LoadLibmongocFunc('mongoc_cleanup');
   mongoc_read_prefs_new := LoadLibmongocFunc('mongoc_read_prefs_new');
