@@ -37,10 +37,10 @@
     <Version>7.0</Version>
     <DCC_Define>DEBUG</DCC_Define>
     <DCC_ExeOutput>..\..\..\bin\Win32\Debug</DCC_ExeOutput>
-    <DCC_UnitSearchPath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting</DCC_UnitSearchPath>
-    <DCC_ResourcePath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting</DCC_ResourcePath>
-    <DCC_ObjPath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting</DCC_ObjPath>
-    <DCC_IncludePath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting</DCC_IncludePath>
+    <DCC_UnitSearchPath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting;$(BDS)\source\dUnit\Contrib\XMLReporting;$(BDS)\lib</DCC_UnitSearchPath>
+    <DCC_ResourcePath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting;$(BDS)\source\dUnit\Contrib\XMLReporting;$(BDS)\lib</DCC_ResourcePath>
+    <DCC_ObjPath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting;$(BDS)\source\dUnit\Contrib\XMLReporting;$(BDS)\lib</DCC_ObjPath>
+    <DCC_IncludePath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10;..\..\convey-private-libs;..\..\convey-public-libs;$(BDS)\source\dunit\src;..\..\dunitgroup-dunit\Contrib\XMLReporting;$(BDS)\source\dUnit\Contrib\XMLReporting;$(BDS)\lib</DCC_IncludePath>
     <DCC_DcuOutput>..\..\..\intermediate\Win32\Debug\d2007</DCC_DcuOutput>
     <DCC_ObjOutput>..\..\..\intermediate\Win32\Debug\d2007</DCC_ObjOutput>
     <DCC_HppOutput>..\..\..\intermediate\Win32\Debug\d2007</DCC_HppOutput>
