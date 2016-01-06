@@ -1473,7 +1473,7 @@ function TBsonBuffer.startObject(const Name: UTF8String): Boolean;
 var
   child: Pointer;
 begin
-  child := bson_new();
+  child := bson_malloc(SizeOf(bson_t));
   Result := bson_append_document_begin(GetCurrNativeBson, PAnsiChar(Name), -1, child);
   FSubNativeBson.Push(child);
 end;
@@ -1491,7 +1491,7 @@ function TBsonBuffer.startArray(const Name: UTF8String): Boolean;
 var
   child: Pointer;
 begin
-  child := bson_new();
+  child := bson_malloc(SizeOf(bson_t));
   Result := bson_append_array_begin(GetCurrNativeBson, PAnsiChar(Name), -1, child);
   FSubNativeBson.Push(child);
 end;
