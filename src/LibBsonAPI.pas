@@ -7,7 +7,7 @@ uses
 
 const
   (* PLEASE!!! maintain this constant in sync with the dll driver version this code operates with *)
-  LibBson_DllVersion = '1-1-5';
+  LibBson_DllVersion = '1-3-0';
 
   CPUType = {$IFDEF WIN64} '64' {$ELSE} '32' {$ENDIF};
   ConfigType = {$IFDEF DEBUG} 'd' {$ELSE} 'r' {$ENDIF};
@@ -21,7 +21,9 @@ type
   PPByte = ^PByte;
 
 {$IFNDEF OnDemandLibbsonLoad}
-procedure bson_free(mem : PAnsiChar); cdecl; external LibBson_DLL;
+function bson_malloc(length : Cardinal) : Pointer; cdecl; external LibBson_DLL;
+function bson_alloc : Pointer; cdecl; external LibBson_DLL;
+procedure bson_free(mem : Pointer); cdecl; external LibBson_DLL;
 procedure bson_strfreev(strv : PPAnsiChar); cdecl; external LibBson_DLL;
 
 function bson_new : bson_p; cdecl; external LibBson_DLL;
@@ -113,7 +115,9 @@ procedure LoadLibbsonFunctions(const dll: HMODULE);
 procedure FreeLibbsonLibrary;
 
 type
-  Tbson_free = procedure(mem : PAnsiChar); cdecl;
+  Tbson_alloc = function : Pointer; cdecl;
+  Tbson_malloc = function(length : Cardinal) : Pointer; cdecl;
+  Tbson_free = procedure(mem : Pointer); cdecl;
   Tbson_strfreev = procedure(strv : PPAnsiChar); cdecl;
 
   Tbson_new = function : bson_p; cdecl;
@@ -200,6 +204,8 @@ type
     binary : PPByte); cdecl;
 
 var
+  bson_alloc: Tbson_alloc;
+  bson_malloc: Tbson_malloc;
   bson_free: Tbson_free;
   bson_strfreev: Tbson_strfreev;
   bson_new: Tbson_new;
@@ -282,6 +288,8 @@ var
 begin
   dllHandle := dll;
 
+  bson_alloc := LoadLibbsonFunc('bson_alloc');
+  bson_malloc := LoadLibbsonFunc('bson_malloc');
   bson_free := LoadLibbsonFunc('bson_free');
   bson_strfreev := LoadLibbsonFunc('bson_strfreev');
   bson_new := LoadLibbsonFunc('bson_new');
