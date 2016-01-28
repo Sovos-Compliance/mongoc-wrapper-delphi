@@ -269,8 +269,8 @@ implementation
 {$IFDEF OnDemandLibbsonLoad}
   
 resourcestring
-  SLoadDllFailed = 'Failed loading %s';
-  SLoadFuncFailed = 'Function "%s" not found on %s library';
+  SLoadDllFailed = 'Failed loading dll: %s';
+  SLoadFuncFailed = 'Failed loading function %s from dll';
   
 var
   HLibbson: HMODULE;
@@ -283,7 +283,7 @@ var
   begin
     Result := GetProcAddress(dllHandle, name);
     if Result = nil then
-      raise Exception.CreateFmt(SLoadFuncFailed, [name, dll]);
+      raise Exception.CreateFmt(SLoadFuncFailed, [name]);
   end;
 begin
   dllHandle := dll;
