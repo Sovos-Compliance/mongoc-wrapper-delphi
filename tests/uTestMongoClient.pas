@@ -140,16 +140,9 @@ var
 begin
   cmd := NewBsonBuffer;
   cmd.append('not existing command', 1);
-  try
-    FClient.RunCommand(TEST_DB, cmd.finish, readPrefs);
-    Fail('EMongoClient expected');
-  except
-    on e: EMongoClient do
-      if MongoDbV3 then
-        CheckEqualsString('no such command: not existing command', e.Message)
-      else
-        CheckEqualsString('no such cmd: not existing command', e.Message);
-  end;
+  StartExpectingException(EMongoClient);
+  FClient.RunCommand(TEST_DB, cmd.finish, readPrefs);
+  StopExpectingException('EMongoClient expected');
 end;
 
 procedure TestMongoClient.GetReadPrefs;

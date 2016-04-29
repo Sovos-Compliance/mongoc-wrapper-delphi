@@ -851,7 +851,7 @@ begin
 
   it := b.iterator;
   Check(it.next);
-  Check(BSON_TYPE_DOCUMENT = it.Kind);
+  Check(BSON_TYPE_ARRAY = it.Kind);
   CheckEqualsString('dict', it.key);
 
   it := it.subiterator;
