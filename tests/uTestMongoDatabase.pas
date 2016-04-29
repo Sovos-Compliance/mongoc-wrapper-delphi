@@ -57,18 +57,31 @@ const
 var
   coll: TMongoCollection;
   it: IBsonIterator;
+  collStats: IBson;
 begin
   coll := FDatabase.CreateCollection('test_options', true, maxSize, maxDocs, false, false);
+  collStats := coll.GetStats;
 
-  it := coll.GetStats.find('lastExtentSize');
-  if MongoDbV3 then
-    CheckEquals(maxSize, it.AsDouble)
+  it := collStats.find('lastExtentSize');
+  if it <> nil then
+  begin
+    if MongoDbV3 then
+      CheckEquals(maxSize, it.AsDouble)
+    else
+      CheckEquals(maxSize, it.AsInteger);
+  end
   else
+  begin
+    it := collStats.find('maxSize');
     CheckEquals(maxSize, it.AsInteger);
-  Check(it.Find('capped'));
+  end;
+
+  it := collStats.find('capped');
+  Check(it <> nil);
   Check(it.AsBoolean);
 
-  Check(it.Find('max'));
+  it := collStats.find('max');
+  Check(it <> nil);
   CheckEquals(maxDocs, it.AsInteger);
 end;
 
@@ -78,13 +91,9 @@ var
 begin
   db := FClient.GetDatabase('*');
   try
-    try
-      db.Drop;
-      Fail('EMongoDatabase expected');
-    except
-      on e: EMongoDatabase do
-        CheckEqualsString('Invalid ns [*.$cmd]', e.Message);
-    end;
+    StartExpectingException(EMongoDatabase);
+    db.Drop;
+    StopExpectingException('EMongoDatabase expected');
   finally
     db.Free;
   end;
