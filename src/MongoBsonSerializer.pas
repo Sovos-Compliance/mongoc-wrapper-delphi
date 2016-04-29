@@ -1063,22 +1063,23 @@ end;
 
 procedure TCnvStringDictionarySerializer.Serialize(const AName: String;
   ASource: TObject);
-var
-  callback: TCnvStringDictionaryEnumerateCallback;
 begin
   if not (ASource is TCnvStringDictionary) then
     Exit;
-
-  if DictionarySerializationMode = ForceComplex then
-    callback := SerializeKeyValuePairComplex
-  else
-    callback := SerializeKeyValuePairSimple;
-
   with Target do
   begin
-    startObject(AName);
-    TCnvStringDictionary(ASource).Foreach(callback);
-    finishObject;
+    if (DictionarySerializationMode = ForceComplex) then
+    begin
+      startArray(AName);
+      TCnvStringDictionary(ASource).Foreach(SerializeKeyValuePairComplex);
+      finishArray;
+    end
+    else
+    begin
+      startObject(AName);
+      TCnvStringDictionary(ASource).Foreach(SerializeKeyValuePairSimple);
+      finishObject;
+    end;
   end;
 end;
 
