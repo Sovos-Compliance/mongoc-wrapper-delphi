@@ -1,4 +1,4 @@
-unit TestMongoBsonSerializer;
+﻿unit TestMongoBsonSerializer;
 // should be encoded as UTF8 without BOM for Delphi5
 
 {$i DelphiVersion_defines.inc}
@@ -867,7 +867,7 @@ begin
   keyit := subit.subiterator;
   Check(keyit.next);
   Check(BSON_TYPE_UTF8 = keyit.Kind);
-  CheckEqualsString('item1', keyit.Value);
+  CheckEqualsString('A', UpperCase(keyit.Value));
 
   Check(subit.next);
   Check(BSON_TYPE_DOCUMENT = subit.Kind);
@@ -875,7 +875,7 @@ begin
 
   valueit := subit.subiterator;
   Check(valueit.next);
-  Check(BSON_TYPE_DOCUMENT = valueit.Kind);
+  Check(BSON_TYPE_INT32 = valueit.Kind);
 
   Check(it.next);
   Check(BSON_TYPE_DOCUMENT = it.Kind);
@@ -889,7 +889,7 @@ begin
   keyit := subit.subiterator;
   Check(keyit.next);
   Check(BSON_TYPE_UTF8 = keyit.Kind);
-  CheckEqualsString('a', keyit.Value);
+  CheckEqualsString('ITEM1', UpperCase(keyit.Value));
 
   Check(subit.next);
   Check(BSON_TYPE_DOCUMENT = subit.Kind);
@@ -897,8 +897,15 @@ begin
 
   valueit := subit.subiterator;
   Check(valueit.next);
+  Check(BSON_TYPE_DOCUMENT = valueit.Kind);
+
+  valueit := valueit.subiterator;
+  Check(valueit.next);
+  Check(BSON_TYPE_UTF8 = valueit.Kind);
+
+  Check(valueit.next);
   Check(BSON_TYPE_INT32 = valueit.Kind);
-  CheckEquals(1, valueit.Value);
+  CheckEquals(5, valueit.Value);
 
   newDic := TCnvStringDictionary.Create(true);
   FDeserializer := CreateDeserializer(TCnvStringDictionary);
