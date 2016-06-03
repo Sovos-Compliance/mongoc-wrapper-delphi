@@ -77,7 +77,7 @@ type
   private
     class function BuildObject(const _Type: string; AContext : Pointer): TObject;
     procedure DeserializeIterator(var ATarget: TObject; AContext : Pointer);
-    procedure DeserializeObject(p: PPropInfo; ATarget: TObject; AContext: Pointer); overload;
+    procedure DeserializeObject(p: PPropInfo; ATarget: TObject; ASource: IBsonIterator; AContext: Pointer); overload;
     procedure DeserializeObject(AObjClass: TClass; var AObj: TObject;
                                 ASource: IBsonIterator; AContext: Pointer); overload;
     procedure DeserializeSet(p: PPropInfo; var ATarget: TObject);
@@ -748,16 +748,19 @@ begin
               end;
               {$ENDIF}
             end;
-            tkClass : DeserializeObject(p, ATarget, AContext);
+            tkClass : DeserializeObject(p, ATarget, Source.subiterator, AContext);
           end;
-        BSON_TYPE_DOCUMENT, BSON_TYPE_BINARY : if p^.PropType^.Kind = tkClass then
-          DeserializeObject(p, ATarget, AContext);
+        BSON_TYPE_BINARY :
+          if p^.PropType^.Kind = tkClass then
+            DeserializeObject(p, ATarget, Source, AContext);
+        BSON_TYPE_DOCUMENT : if p^.PropType^.Kind = tkClass then
+          DeserializeObject(p, ATarget, Source.subiterator, AContext);
       end;
     end;
 end;
 
-procedure TPrimitivesBsonDeserializer.DeserializeObject(p: PPropInfo; ATarget: TObject; AContext:
-    Pointer);
+procedure TPrimitivesBsonDeserializer.DeserializeObject(p: PPropInfo; ATarget: TObject;
+  ASource: IBsonIterator; AContext: Pointer);
 var
   c: TClass;
   o: TObject;
@@ -770,7 +773,7 @@ begin
   {$ENDIF}
   o := GetObjectProp(ATarget, p);
   MustAssignObjectProperty := o = nil;
-  DeserializeObject(c, o, Source, AContext);
+  DeserializeObject(c, o, ASource, AContext);
   if MustAssignObjectProperty then
     SetObjectProp(ATarget, p, o);
 end;
@@ -783,10 +786,7 @@ var
 begin
   Deserializer := CreateDeserializer(AObjClass);
   try
-    if Source.Kind in [BSON_TYPE_DOCUMENT, BSON_TYPE_ARRAY] then
-      Deserializer.Source := ASource.subiterator
-    else
-      Deserializer.Source := ASource; // for bindata we need original BsonIterator to obtain binary handler
+    Deserializer.Source := ASource;
     if AObj = nil then
     begin
       if Source.key = SERIALIZED_ATTRIBUTE_ACTUALTYPE then
@@ -885,7 +885,7 @@ begin
     if I > Length(dynArrOfObjs) then
       SetLength(dynArrOfObjs, I * 2);
     DeserializeObject(GetTypeData(dynArrayElementInfo^)^.ClassType,
-                      dynArrOfObjs[I], it, AContext);
+                      dynArrOfObjs[I], it.subiterator, AContext);
     Inc(I);
   end;
   SetLength(dynArrOfObjs, I);
@@ -1094,9 +1094,9 @@ begin
     Exit;
 
   dict := TCnvStringDictionary(ATarget);
-  if DictionarySerializationMode = ForceComplex then
+  if Source.Kind = BSON_TYPE_ARRAY then
     ComplexDeserialize(dict, AContext)
-  else
+  else if Source.Kind = BSON_TYPE_DOCUMENT then
     SimpleDeserialize(dict, AContext);
 end;
 
@@ -1106,6 +1106,7 @@ var
   key: string;
   subit, keyit, valit: IBsonIterator;
 begin
+  Source := Source.subiterator;
   while Source.next do
   begin
     if (Source.kind <> BSON_TYPE_DOCUMENT) and (Source.kind <> BSON_TYPE_ARRAY) then
@@ -1172,6 +1173,7 @@ end;
 procedure TCnvStringDictionaryDeserializer.SimpleDeserialize(
   var ADic: TCnvStringDictionary; AContext: Pointer);
 begin
+  Source := Source.subiterator;
   while Source.next do
     DeserializeValue(ADic, AContext, Source, Source.key);
 end;

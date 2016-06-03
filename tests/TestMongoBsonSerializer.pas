@@ -809,7 +809,7 @@ begin
 
   newDic := TCnvStringDictionary.Create(true);
   FDeserializer := CreateDeserializer(TCnvStringDictionary);
-  FDeserializer.Source := b.finish.find('dict').subiterator;
+  FDeserializer.Source := b.finish.find('dict');
   FDeserializer.Deserialize(TObject(newDic), nil);
 
   Check(newDic.TryGetValue('item1', TObject(subObj)));
@@ -840,7 +840,7 @@ begin
   DictionarySerializationMode := ForceComplex;
   dic := TCnvStringDictionary.Create(true);
   dic.AddOrSetValue('item1', TIntSubObject.Create(5));
-  dic.AddOrSetValue('a', 1);
+  dic.AddOrSetValue('abcde', 1);
 
   bb := NewBsonBuffer;
   FSerializer := CreateSerializer(TCnvStringDictionary);
@@ -867,7 +867,7 @@ begin
   keyit := subit.subiterator;
   Check(keyit.next);
   Check(BSON_TYPE_UTF8 = keyit.Kind);
-  CheckEqualsString('A', UpperCase(keyit.Value));
+  CheckEqualsString('abcde', keyit.Value);
 
   Check(subit.next);
   Check(BSON_TYPE_DOCUMENT = subit.Kind);
@@ -909,12 +909,12 @@ begin
 
   newDic := TCnvStringDictionary.Create(true);
   FDeserializer := CreateDeserializer(TCnvStringDictionary);
-  FDeserializer.Source := b.find('dict').subiterator;
+  FDeserializer.Source := b.find('dict');
   FDeserializer.Deserialize(TObject(newDic), nil);
 
   Check(newDic.TryGetValue('item1', TObject(subObj)));
   CheckEquals(5, subObj.TheInt);
-  Check(newDic.TryGetValue('a', newInt));
+  Check(newDic.TryGetValue('abcde', newInt));
   CheckEquals(1, newInt);
 
   dic.Free;
