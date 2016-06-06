@@ -69,6 +69,10 @@ type
     {$IFDEF DELPHI2007}
     procedure SerializeDynamicArrayOfObjects(APropInfo: PPropInfo; ASource: TObject);
     {$ENDIF}
+    procedure SerializeDictionaryKeyValuePairSimple(const AKey: string; const AValue: TObject; AUserData: Pointer);
+    procedure SerializeDictionaryKeyValuePairComplex(const AKey: string; const AValue: TObject; AUserData: Pointer);
+    procedure SerializeDictionaryValue(const AKey: string; const AValue: TObject);
+    procedure SerializeDictionary(const AName: String; ASource: TObject);
   public
     procedure Serialize(const AName: String; ASource: TObject); override;
   end;
@@ -86,6 +90,10 @@ type
     procedure DeserializeDynamicArrayOfObjects(p: PPropInfo; var ATarget: TObject; AContext : Pointer);
     {$ENDIF}
     function GetArrayDimension(it: IBsonIterator) : Integer;
+    class procedure DeserializeDictionaryValue(var ADic: TCnvStringDictionary; AContext: Pointer;
+      it: IBsonIterator; const AKey: string);
+    procedure DeserializeDictionarySimple(var ADic: TCnvStringDictionary; AContext : Pointer);
+    procedure DeserializeDictionaryComplex(var ADic: TCnvStringDictionary; AContext : Pointer);
   public
     procedure Deserialize(var ATarget: TObject; AContext : Pointer); override;
   end;
@@ -190,24 +198,6 @@ type
   TObjectAsStringListBsonDeserializer = class(TBaseBsonDeserializer)
   public
     procedure Deserialize(var ATarget: TObject; AContext: Pointer); override;
-  end;
-
-  TCnvStringDictionarySerializer = class(TBaseBsonSerializer)
-    procedure SerializeKeyValuePairSimple(const AKey: string; const AValue: TObject; AUserData: Pointer);
-    procedure SerializeKeyValuePairComplex(const AKey: string; const AValue: TObject; AUserData: Pointer);
-    procedure SerializeValue(const AKey: string; const AValue: TObject);
-  public
-    procedure Serialize(const AName: String; ASource: TObject); override;
-  end;
-
-  TCnvStringDictionaryDeserializer = class(TBaseBsonDeserializer)
-  private
-    class procedure DeserializeValue(var ADic: TCnvStringDictionary; AContext: Pointer;
-      it: IBsonIterator; const AKey: string);
-    procedure SimpleDeserialize(var ADic: TCnvStringDictionary; AContext : Pointer);
-    procedure ComplexDeserialize(var ADic: TCnvStringDictionary; AContext : Pointer);
-  public
-    procedure Deserialize(var ATarget: TObject; AContext : Pointer); override;
   end;
 
 var
@@ -507,6 +497,47 @@ begin
       Target.appendStr('', GetEnumName(TypeInfo, i));
 end;
 
+procedure TPrimitivesBsonSerializer.SerializeDictionary(const AName: String;
+  ASource: TObject);
+begin
+  if not (ASource is TCnvStringDictionary) then
+    Exit;
+  with Target do
+  begin
+    if (DictionarySerializationMode = ForceComplex) then
+    begin
+      startArray(AName);
+      TCnvStringDictionary(ASource).Foreach(SerializeDictionaryKeyValuePairComplex);
+      finishArray;
+    end
+    else
+    begin
+      startObject(AName);
+      TCnvStringDictionary(ASource).Foreach(SerializeDictionaryKeyValuePairSimple);
+      finishObject;
+    end;
+  end;
+end;
+
+procedure TPrimitivesBsonSerializer.SerializeDictionaryKeyValuePairComplex(
+  const AKey: string; const AValue: TObject; AUserData: Pointer);
+begin
+  Target.startObject(SERIALIZED_ATTRIBUTE_COLLECTION_KEY + SERIALIZED_ATTRIBUTE_COLLECTION_VALUE);
+    Target.startObject(SERIALIZED_ATTRIBUTE_COLLECTION_KEY);
+      Target.appendStr(AValue.ClassName, AKey);
+    Target.finishObject;
+    Target.startObject(SERIALIZED_ATTRIBUTE_COLLECTION_VALUE);
+      SerializeDictionaryValue(AValue.ClassName, AValue);
+    Target.finishObject;
+  Target.finishObject;
+end;
+
+procedure TPrimitivesBsonSerializer.SerializeDictionaryKeyValuePairSimple(
+  const AKey: string; const AValue: TObject; AUserData: Pointer);
+begin
+  SerializeDictionaryValue(AKey, AValue);
+end;
+
 procedure TPrimitivesBsonSerializer.SerializeObject(APropInfo: PPropInfo;
     ASource: TObject);
 var
@@ -514,12 +545,55 @@ var
   SubObject : TObject;
 begin
   SubObject := GetObjectProp(ASource, APropInfo);
+
+  if SubObject is TCnvStringDictionary then
+  begin
+    SerializeDictionary(APropInfo.Name, SubObject);
+    Exit;
+  end;
+
   SubSerializer := CreateSerializer(SubObject.ClassType);
   try
     SubSerializer.Target := Target;
     SubSerializer.Serialize(APropInfo.Name, SubObject);
   finally
     SubSerializer.Free;
+  end;
+end;
+
+procedure TPrimitivesBsonSerializer.SerializeDictionaryValue(const AKey: string;
+  const AValue: TObject);
+var
+  serializer: TBaseBsonSerializer;
+begin
+  if AValue is TPrimitiveWrapper then
+  begin
+    // serialize wrappers as primitives
+    if AValue is TStringWrapper then
+      Target.appendStr(AKey, TStringWrapper(AValue).Value)
+    else if AValue is TIntegerWrapper then
+      Target.append(AKey, TIntegerWrapper(AValue).Value)
+    else if AValue is TInt64Wrapper then
+      Target.append(AKey, TInt64Wrapper(AValue).Value)
+    else if AValue is TDoubleWrapper then
+      Target.append(AKey, TDoubleWrapper(AValue).Value)
+    else if AValue is TBooleanWrapper then
+      Target.append(AKey, TBooleanWrapper(AValue).Value)
+    else if AValue is TDateTimeWrapper then
+      Target.appendDate(AKey, TDateTimeWrapper(AValue).Value)
+    else
+      raise Exception.Create('Unable to serialize primitive wrapper');
+  end
+  else
+  begin
+    // serialize object
+    serializer := CreateSerializer(AValue.ClassType);
+    try
+      serializer.Target := Target;
+      serializer.Serialize(AKey, AValue);
+    finally
+      serializer.Free;
+    end;
   end;
 end;
 
@@ -781,23 +855,33 @@ var
   Deserializer : TBaseBsonDeserializer;
   _Type : string;
 begin
+  if AObj = nil then
+  begin
+    if Source.key = SERIALIZED_ATTRIBUTE_ACTUALTYPE then
+      begin
+        _Type := Source.value;
+        Source.next;
+      end
+      else
+        _Type := Strip_T_FormClassName(AObjClass.ClassName);
+    AObj := BuildObject(_Type, AContext);
+  end;
+
+  if AObj is TCnvStringDictionary then
+  begin
+    if Source.Kind = BSON_TYPE_DOCUMENT then
+      DeserializeDictionarySimple(TCnvStringDictionary(AObj), AContext)
+    else if Source.Kind = BSON_TYPE_ARRAY then
+      DeserializeDictionaryComplex(TCnvStringDictionary(AObj), AContext);
+    Exit;
+  end;
+
   Deserializer := CreateDeserializer(AObjClass);
   try
     if Source.Kind in [BSON_TYPE_DOCUMENT, BSON_TYPE_ARRAY] then
       Deserializer.Source := ASource.subiterator
     else
       Deserializer.Source := ASource; // for bindata we need original BsonIterator to obtain binary handler
-    if AObj = nil then
-    begin
-      if Source.key = SERIALIZED_ATTRIBUTE_ACTUALTYPE then
-        begin
-          _Type := Source.value;
-          Source.next;
-        end
-        else
-          _Type := Strip_T_FormClassName(AObjClass.ClassName);
-      AObj := BuildObject(_Type, AContext);
-    end;
     Deserializer.Deserialize(AObj, AContext);
   finally
     Deserializer.Free;
@@ -905,6 +989,86 @@ begin
   end;
 end;
 
+procedure TPrimitivesBsonDeserializer.DeserializeDictionaryComplex(
+  var ADic: TCnvStringDictionary; AContext: Pointer);
+var
+  key: string;
+  it, subit, keyit, valit: IBsonIterator;
+begin
+  it := Source.subiterator;
+  while it.next do
+  begin
+    if (it.kind <> BSON_TYPE_DOCUMENT) and (it.kind <> BSON_TYPE_ARRAY) then
+      continue;
+
+    subit := it.subiterator;
+    key := '';
+    valit := nil;
+    while subit.next and (subit.kind = BSON_TYPE_DOCUMENT) do
+    begin
+      if subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_KEY then
+      begin
+        keyit := subit.subiterator;
+        keyit.next;
+        if keyit.kind <> BSON_TYPE_UTF8 then
+          raise EBsonSerializer.Create('Only string key supported for ' + TCnvStringDictionary.ClassName);
+        key := keyit.AsUTF8String;
+      end
+      else if subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_VALUE then
+      begin
+        valit := subit.subiterator;
+        valit.next;
+
+      end;
+    end;
+    if (key <> '') and (valit <> nil) then
+      DeserializeDictionaryValue(ADic, AContext, valit, key);
+  end;
+end;
+
+class procedure TPrimitivesBsonDeserializer.DeserializeDictionaryValue(var ADic: TCnvStringDictionary; AContext: Pointer;
+  it: IBsonIterator; const AKey: string);
+var
+  deserializer: TBaseBsonDeserializer;
+  obj: TObject;
+  subit: IBsonIterator;
+begin
+  with ADic do
+    case it.Kind of
+      BSON_TYPE_UTF8: AddOrSetValue(AKey, it.AsUTF8String);
+      BSON_TYPE_INT32: AddOrSetValue(AKey, it.AsInteger);
+      BSON_TYPE_INT64: AddOrSetValue(AKey, it.AsInt64);
+      BSON_TYPE_DOUBLE: AddOrSetValue(AKey, it.AsDouble);
+      BSON_TYPE_BOOL: AddOrSetValue(AKey, it.AsBoolean);
+      BSON_TYPE_DATE_TIME: AddOrSetValueDate(AKey, it.AsDateTime);
+      BSON_TYPE_DOCUMENT:
+      begin
+        subit := it.subiterator;
+        obj := nil;
+        deserializer := CreateDeserializer(TObject);
+        try
+          deserializer.Source := subit;
+          deserializer.Deserialize(obj, AContext);
+        finally
+          deserializer.Free;
+        end;
+        AddOrSetValue(AKey, obj);
+      end;
+      else
+        raise Exception.Create('Unable to deserialize primitive wrapper');
+    end;
+end;
+
+procedure TPrimitivesBsonDeserializer.DeserializeDictionarySimple(
+  var ADic: TCnvStringDictionary; AContext: Pointer);
+var
+  it: IBsonIterator;
+begin
+  it := Source.subiterator;
+  while it.next do
+    DeserializeDictionaryValue(ADic, AContext, it, it.key);
+end;
+
 { TStringsBsonDeserializer }
 
 procedure TStringsBsonDeserializer.Deserialize(var ATarget: TObject; AContext: Pointer);
@@ -1004,178 +1168,6 @@ begin
     TCnvIntegerDictionary(PropInfosDictionaryCacheTrackingList[i]).Free;
 end;
 
-{ TCnvStringDictionarySerializer }
-
-procedure TCnvStringDictionarySerializer.SerializeKeyValuePairSimple(const AKey: string;
-  const AValue: TObject; AUserData: Pointer);
-begin
-  SerializeValue(AKey, AValue);
-end;
-
-procedure TCnvStringDictionarySerializer.SerializeKeyValuePairComplex(const AKey: string;
-  const AValue: TObject; AUserData: Pointer);
-begin
-  Target.startObject(SERIALIZED_ATTRIBUTE_COLLECTION_KEY + SERIALIZED_ATTRIBUTE_COLLECTION_VALUE);
-    Target.startObject(SERIALIZED_ATTRIBUTE_COLLECTION_KEY);
-      Target.appendStr(AValue.ClassName, AKey);
-    Target.finishObject;
-    Target.startObject(SERIALIZED_ATTRIBUTE_COLLECTION_VALUE);
-      SerializeValue(AValue.ClassName, AValue);
-    Target.finishObject;
-  Target.finishObject;
-end;
-
-procedure TCnvStringDictionarySerializer.SerializeValue(const AKey: string;
-  const AValue: TObject);
-var
-  serializer: TBaseBsonSerializer;
-begin
-  if AValue is TPrimitiveWrapper then
-  begin
-    // serialize wrappers as primitives
-    if AValue is TStringWrapper then
-      Target.appendStr(AKey, TStringWrapper(AValue).Value)
-    else if AValue is TIntegerWrapper then
-      Target.append(AKey, TIntegerWrapper(AValue).Value)
-    else if AValue is TInt64Wrapper then
-      Target.append(AKey, TInt64Wrapper(AValue).Value)
-    else if AValue is TDoubleWrapper then
-      Target.append(AKey, TDoubleWrapper(AValue).Value)
-    else if AValue is TBooleanWrapper then
-      Target.append(AKey, TBooleanWrapper(AValue).Value)
-    else if AValue is TDateTimeWrapper then
-      Target.appendDate(AKey, TDateTimeWrapper(AValue).Value)
-    else
-      raise Exception.Create('Unable to serialize primitive wrapper');
-  end
-  else
-  begin
-    // serialize object
-    serializer := CreateSerializer(AValue.ClassType);
-    try
-      serializer.Target := Target;
-      serializer.Serialize(AKey, AValue);
-    finally
-      serializer.Free;
-    end;
-  end;
-end;
-
-procedure TCnvStringDictionarySerializer.Serialize(const AName: String;
-  ASource: TObject);
-begin
-  if not (ASource is TCnvStringDictionary) then
-    Exit;
-  with Target do
-  begin
-    if (DictionarySerializationMode = ForceComplex) then
-    begin
-      startArray(AName);
-      TCnvStringDictionary(ASource).Foreach(SerializeKeyValuePairComplex);
-      finishArray;
-    end
-    else
-    begin
-      startObject(AName);
-      TCnvStringDictionary(ASource).Foreach(SerializeKeyValuePairSimple);
-      finishObject;
-    end;
-  end;
-end;
-
-{ TCnvStringDictionaryDeserializer }
-
-procedure TCnvStringDictionaryDeserializer.Deserialize(var ATarget: TObject;
-  AContext: Pointer);
-var
-  dict: TCnvStringDictionary;
-begin
-  if not (ATarget is TCnvStringDictionary) then
-    Exit;
-
-  dict := TCnvStringDictionary(ATarget);
-  if DictionarySerializationMode = ForceComplex then
-    ComplexDeserialize(dict, AContext)
-  else
-    SimpleDeserialize(dict, AContext);
-end;
-
-procedure TCnvStringDictionaryDeserializer.ComplexDeserialize(
-  var ADic: TCnvStringDictionary; AContext: Pointer);
-var
-  key: string;
-  subit, keyit, valit: IBsonIterator;
-begin
-  while Source.next do
-  begin
-    if (Source.kind <> BSON_TYPE_DOCUMENT) and (Source.kind <> BSON_TYPE_ARRAY) then
-      continue;
-
-    subit := Source.subiterator;
-    key := '';
-    valit := nil;
-    while subit.next and (subit.kind = BSON_TYPE_DOCUMENT) do
-    begin
-      if subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_KEY then
-      begin
-        keyit := subit.subiterator;
-        keyit.next;
-        if keyit.kind <> BSON_TYPE_UTF8 then
-          raise EBsonSerializer.Create('Only string key supported for ' + TCnvStringDictionary.ClassName);
-        key := keyit.AsUTF8String;
-      end
-      else if subit.key = SERIALIZED_ATTRIBUTE_COLLECTION_VALUE then
-      begin
-        valit := subit.subiterator;
-        valit.next;
-
-      end;
-    end;
-    if (key <> '') and (valit <> nil) then
-      DeserializeValue(ADic, AContext, valit, key);
-  end;
-end;
-
-class procedure TCnvStringDictionaryDeserializer.DeserializeValue(var ADic: TCnvStringDictionary; AContext: Pointer;
-  it: IBsonIterator; const AKey: string);
-var
-  deserializer: TBaseBsonDeserializer;
-  obj: TObject;
-  subit: IBsonIterator;
-begin
-  with ADic do
-    case it.Kind of
-      BSON_TYPE_UTF8: AddOrSetValue(AKey, it.AsUTF8String);
-      BSON_TYPE_INT32: AddOrSetValue(AKey, it.AsInteger);
-      BSON_TYPE_INT64: AddOrSetValue(AKey, it.AsInt64);
-      BSON_TYPE_DOUBLE: AddOrSetValue(AKey, it.AsDouble);
-      BSON_TYPE_BOOL: AddOrSetValue(AKey, it.AsBoolean);
-      BSON_TYPE_DATE_TIME: AddOrSetValueDate(AKey, it.AsDateTime);
-      BSON_TYPE_DOCUMENT:
-      begin
-        subit := it.subiterator;
-        obj := nil;
-        deserializer := CreateDeserializer(TObject);
-        try
-          deserializer.Source := subit;
-          deserializer.Deserialize(obj, AContext);
-        finally
-          deserializer.Free;
-        end;
-        AddOrSetValue(AKey, obj);
-      end;
-      else
-        raise Exception.Create('Unable to deserialize primitive wrapper');
-    end;
-end;
-
-procedure TCnvStringDictionaryDeserializer.SimpleDeserialize(
-  var ADic: TCnvStringDictionary; AContext: Pointer);
-begin
-  while Source.next do
-    DeserializeValue(ADic, AContext, Source, Source.key);
-end;
-
 initialization
   DictionarySerializationMode := Simple;
 
@@ -1188,20 +1180,16 @@ initialization
   RegisterClassSerializer(TStrings, TStringsBsonSerializer);
   RegisterClassSerializer(TStream, TStreamBsonSerializer);
   RegisterClassSerializer(TObjectAsStringList, TObjectAsStringListBsonSerializer);
-  RegisterClassSerializer(TCnvStringDictionary, TCnvStringDictionarySerializer);
   RegisterClassDeserializer(TObject, TPrimitivesBsonDeserializer);
   RegisterClassDeserializer(TStrings, TStringsBsonDeserializer);
   RegisterClassDeserializer(TStream, TStreamBsonDeserializer);
   RegisterClassDeserializer(TObjectAsStringList, TObjectAsStringListBsonDeserializer);
-  RegisterClassDeserializer(TCnvStringDictionary, TCnvStringDictionaryDeserializer);
 finalization
   DestroyPropInfosDictionaryCache;
-  UnRegisterClassDeserializer(TCnvStringDictionary, TCnvStringDictionaryDeserializer);
   UnRegisterClassDeserializer(TStream, TStreamBsonDeserializer);
   UnRegisterClassDeserializer(TObject, TPrimitivesBsonDeserializer);
   UnRegisterClassDeserializer(TStrings, TStringsBsonDeserializer);
   UnRegisterClassDeserializer(TObjectAsStringList, TObjectAsStringListBsonDeserializer);
-  UnRegisterClassSerializer(TCnvStringDictionary, TCnvStringDictionarySerializer);
   UnRegisterClassSerializer(TStream, TStreamBsonSerializer);
   UnRegisterClassSerializer(TStrings, TStringsBsonSerializer);
   UnRegisterClassSerializer(TObject, TDefaultObjectBsonSerializer);

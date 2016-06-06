@@ -155,6 +155,16 @@ type
   end;
   {$ENDIF}
 
+  TDictionaryHolder = class
+  private
+    FStrDict: TCnvStringDictionary;
+  public
+    constructor Create;
+    destructor Destroy; override;
+  published
+    property StrDict: TCnvStringDictionary read FStrDict write FStrDict;
+  end;
+
   {$M-}
 
 constructor TTestObject.Create;
@@ -778,7 +788,7 @@ const
   MIN_INT64 = Low(Int64);
   BOOL = true;
 var
-  dic, newDic: TCnvStringDictionary;
+  dh, newDh: TDictionaryHolder;
   b: IBsonBuffer;
   date: TDateTime;
   subObj: TIntSubObject;
@@ -791,46 +801,53 @@ var
   newDate: TDateTime;
 begin
   DOUBLE_VAL := 666.666;
-  dic := TCnvStringDictionary.Create(true);
+  dh := TDictionaryHolder.Create;
+  try
+    dh.StrDict.AddOrSetValue('item1', TIntSubObject.Create(SUBOBJ_VAL));
+    dh.StrDict.AddOrSetValue('item2', MAXINT);
+    dh.StrDict.AddOrSetValue('item3', TEST_STR);
+    dh.StrDict.AddOrSetValue('item4', MIN_INT64);
+    dh.StrDict.AddOrSetValue('item5', BOOL);
+    dh.StrDict.AddOrSetValue('item6', DOUBLE_VAL);
+    date := Now;
+    dh.StrDict.AddOrSetValueDate('item7', date);
 
-  dic.AddOrSetValue('item1', TIntSubObject.Create(SUBOBJ_VAL));
-  dic.AddOrSetValue('item2', MAXINT);
-  dic.AddOrSetValue('item3', TEST_STR);
-  dic.AddOrSetValue('item4', MIN_INT64);
-  dic.AddOrSetValue('item5', BOOL);
-  dic.AddOrSetValue('item6', DOUBLE_VAL);
-  date := Now;
-  dic.AddOrSetValueDate('item7', date);
+    b := NewBsonBuffer;
+    FSerializer := CreateSerializer(TCnvStringDictionary);
+    FSerializer.Target := b;
+    FSerializer.Serialize('dict', dh);
+  finally
+    dh.Free;
+  end;
 
-  b := NewBsonBuffer;
-  FSerializer := CreateSerializer(TCnvStringDictionary);
-  FSerializer.Target := b;
-  FSerializer.Serialize('dict', dic);
+  newDh := TDictionaryHolder.Create;
+  try
+    FDeserializer := CreateDeserializer(TCnvStringDictionary);
+    FDeserializer.Source := b.finish.find('dict').subiterator;
+    FDeserializer.Deserialize(TObject(newDh), nil);
 
-  newDic := TCnvStringDictionary.Create(true);
-  FDeserializer := CreateDeserializer(TCnvStringDictionary);
-  FDeserializer.Source := b.finish.find('dict').subiterator;
-  FDeserializer.Deserialize(TObject(newDic), nil);
-
-  Check(newDic.TryGetValue('item1', TObject(subObj)));
-  CheckEquals(SUBOBJ_VAL, subObj.TheInt);
-  Check(newDic.TryGetValue('item2', newInt));
-  CheckEquals(MAXINT, newInt);
-  Check(newDic.TryGetValue('item3', newStr));
-  CheckEqualsString(TEST_STR, newStr);
-  Check(newDic.TryGetValue('item4', newInt64));
-  CheckEquals(MIN_INT64, newInt64);
-  Check(newDic.TryGetValue('item5', newBool));
-  CheckEquals(BOOL, newBool);
-  Check(newDic.TryGetValue('item6', newDouble));
-  CheckEquals(DOUBLE_VAL, newDouble);
-  Check(newDic.TryGetValueDate('item7', newDate));
-  CheckEquals(date, newDate, DATE_TIME_EPSILON);
+    Check(newDh.StrDict.TryGetValue('item1', TObject(subObj)));
+    CheckEquals(SUBOBJ_VAL, subObj.TheInt);
+    Check(newDh.StrDict.TryGetValue('item2', newInt));
+    CheckEquals(MAXINT, newInt);
+    Check(newDh.StrDict.TryGetValue('item3', newStr));
+    CheckEqualsString(TEST_STR, newStr);
+    Check(newDh.StrDict.TryGetValue('item4', newInt64));
+    CheckEquals(MIN_INT64, newInt64);
+    Check(newDh.StrDict.TryGetValue('item5', newBool));
+    CheckEquals(BOOL, newBool);
+    Check(newDh.StrDict.TryGetValue('item6', newDouble));
+    CheckEquals(DOUBLE_VAL, newDouble);
+    Check(newDh.StrDict.TryGetValueDate('item7', newDate));
+    CheckEquals(date, newDate, DATE_TIME_EPSILON);
+  finally
+    newDh.Free;
+  end;
 end;
 
 procedure TestTMongoBsonSerializer.StringDictionaryComplex;
 var
-  dic, newDic: TCnvStringDictionary;
+  dh, newDh: TDictionaryHolder;
   bb: IBsonBuffer;
   b: IBson;
   it, subit, keyit, valueit: IBsonIterator;
@@ -838,21 +855,35 @@ var
   newInt: Integer;
 begin
   DictionarySerializationMode := ForceComplex;
-  dic := TCnvStringDictionary.Create(true);
-  dic.AddOrSetValue('item1', TIntSubObject.Create(5));
-  dic.AddOrSetValue('a', 1);
+  dh := TDictionaryHolder.Create;
+  try
+    dh.StrDict.AddOrSetValue('item1', TIntSubObject.Create(5));
+    dh.StrDict.AddOrSetValue('a', 1);
 
-  bb := NewBsonBuffer;
-  FSerializer := CreateSerializer(TCnvStringDictionary);
-  FSerializer.Target := bb;
-  FSerializer.Serialize('dict', dic);
+    bb := NewBsonBuffer;
+    FSerializer := CreateSerializer(TCnvStringDictionary);
+    FSerializer.Target := bb;
+    FSerializer.Serialize('dict', dh);
+  finally
+    dh.Free;
+  end;
 
   b := bb.finish;
 
   it := b.iterator;
   Check(it.next);
-  Check(BSON_TYPE_ARRAY = it.Kind);
+  Check(BSON_TYPE_DOCUMENT = it.Kind);
   CheckEqualsString('dict', it.key);
+
+  it := it.subiterator;
+
+  Check(it.next);
+  Check(BSON_TYPE_UTF8 = it.Kind);
+  CheckEqualsString(SERIALIZED_ATTRIBUTE_ACTUALTYPE, it.key);
+
+  Check(it.next);
+  Check(BSON_TYPE_ARRAY = it.Kind);
+  CheckEqualsString('StrDict', it.key);
 
   it := it.subiterator;
   Check(it.next);
@@ -900,17 +931,20 @@ begin
   Check(BSON_TYPE_INT32 = valueit.Kind);
   CheckEquals(1, valueit.Value);
 
-  newDic := TCnvStringDictionary.Create(true);
-  FDeserializer := CreateDeserializer(TCnvStringDictionary);
-  FDeserializer.Source := b.find('dict').subiterator;
-  FDeserializer.Deserialize(TObject(newDic), nil);
+  newDh := TDictionaryHolder.Create;
+  try
+    FDeserializer := CreateDeserializer(TCnvStringDictionary);
+    FDeserializer.Source := b.find('dict').subiterator;
+    FDeserializer.Deserialize(TObject(newDh), nil);
 
-  Check(newDic.TryGetValue('item1', TObject(subObj)));
-  CheckEquals(5, subObj.TheInt);
-  Check(newDic.TryGetValue('a', newInt));
-  CheckEquals(1, newInt);
+    Check(newDh.StrDict.TryGetValue('item1', TObject(subObj)));
+    CheckEquals(5, subObj.TheInt);
+    Check(newDh.StrDict.TryGetValue('a', newInt));
+    CheckEquals(1, newInt);
+  finally
+    newDh.Free;
+  end;
 
-  dic.Free;
   DictionarySerializationMode := Simple;
 end;
 
@@ -919,6 +953,20 @@ end;
 constructor TIntSubObject.Create(ATheInt: Integer);
 begin
   FTheInt := ATheInt;
+end;
+
+{ TDictionaryHolder }
+
+constructor TDictionaryHolder.Create;
+begin
+  inherited;
+  FStrDict := TCnvStringDictionary.Create(true);
+end;
+
+destructor TDictionaryHolder.Destroy;
+begin
+  FStrDict.Free;
+  inherited;
 end;
 
 initialization
