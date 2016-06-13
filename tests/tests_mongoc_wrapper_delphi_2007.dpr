@@ -19,7 +19,6 @@ uses
   LibBsonAPI in '..\src\LibBsonAPI.pas',
   MongoBson in '..\src\MongoBson.pas',
   MongoBsonSerializer in '..\src\MongoBsonSerializer.pas',
-  uCnvDictionary in '..\src\uCnvDictionary.pas',
   uDelphi5 in '..\src\uDelphi5.pas',
   uLibMongocAPI in '..\src\uLibMongocAPI.pas',
   uMongo in '..\src\uMongo.pas',
