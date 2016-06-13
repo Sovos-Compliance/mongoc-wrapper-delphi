@@ -13,7 +13,6 @@ uses
   LibBsonAPI in '..\src\LibBsonAPI.pas',
   MongoBson in '..\src\MongoBson.pas',
   MongoBsonSerializer in '..\src\MongoBsonSerializer.pas',
-  uCnvDictionary in '..\src\uCnvDictionary.pas',
   uDelphi5 in '..\src\uDelphi5.pas',
   uMain in 'uMain.pas',
   uLibMongocAPI in '..\src\uLibMongocAPI.pas',

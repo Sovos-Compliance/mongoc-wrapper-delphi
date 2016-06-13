@@ -1,4 +1,4 @@
-unit TestMongoBsonSerializer;
+﻿unit TestMongoBsonSerializer;
 // should be encoded as UTF8 without BOM for Delphi5
 
 {$i DelphiVersion_defines.inc}
@@ -852,13 +852,13 @@ var
   b: IBson;
   it, subit, keyit, valueit: IBsonIterator;
   subObj: TIntSubObject;
-  newInt: Integer;
+  i: Integer;
 begin
   DictionarySerializationMode := ForceComplex;
   dh := TDictionaryHolder.Create;
   try
-    dh.StrDict.AddOrSetValue('item1', TIntSubObject.Create(5));
-    dh.StrDict.AddOrSetValue('a', 1);
+    dh.StrDict.AddOrSetValue('a', TIntSubObject.Create(1));
+    dh.StrDict.AddOrSetValue('b', TIntSubObject.Create(5));
 
     bb := NewBsonBuffer;
     FSerializer := CreateSerializer(TCnvStringDictionary);
@@ -870,66 +870,40 @@ begin
 
   b := bb.finish;
 
-  it := b.iterator;
-  Check(it.next);
-  Check(BSON_TYPE_DOCUMENT = it.Kind);
-  CheckEqualsString('dict', it.key);
+  it := b.find('dict.StrDict').subiterator;
 
-  it := it.subiterator;
+  for i := 0 to 1 do
+  begin
+    Check(it.next);
+    Check(BSON_TYPE_DOCUMENT = it.Kind);
+    CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_KEY + SERIALIZED_ATTRIBUTE_COLLECTION_VALUE, it.key);
 
-  Check(it.next);
-  Check(BSON_TYPE_UTF8 = it.Kind);
-  CheckEqualsString(SERIALIZED_ATTRIBUTE_ACTUALTYPE, it.key);
+    subit := it.subiterator;
+    Check(subit.next);
+    Check(BSON_TYPE_DOCUMENT = subit.Kind);
+    CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_KEY, subit.key);
 
-  Check(it.next);
-  Check(BSON_TYPE_ARRAY = it.Kind);
-  CheckEqualsString('StrDict', it.key);
+    keyit := subit.subiterator;
+    Check(keyit.next);
+    Check(BSON_TYPE_UTF8 = keyit.Kind);
+    Check((keyit.Value = 'a') or (keyit.Value = 'b'));
 
-  it := it.subiterator;
-  Check(it.next);
-  Check(BSON_TYPE_DOCUMENT = it.Kind);
-  CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_KEY + SERIALIZED_ATTRIBUTE_COLLECTION_VALUE, it.key);
+    Check(subit.next);
+    Check(BSON_TYPE_DOCUMENT = subit.Kind);
+    CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_VALUE, subit.key);
 
-  subit := it.subiterator;
-  Check(subit.next);
-  Check(BSON_TYPE_DOCUMENT = subit.Kind);
-  CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_KEY, subit.key);
+    valueit := subit.subiterator;
+    Check(valueit.next);
+    Check(BSON_TYPE_DOCUMENT = valueit.Kind);
 
-  keyit := subit.subiterator;
-  Check(keyit.next);
-  Check(BSON_TYPE_UTF8 = keyit.Kind);
-  CheckEqualsString('item1', keyit.Value);
+    valueit := valueit.subiterator;
+    Check(valueit.next);
+    Check(BSON_TYPE_UTF8 = valueit.Kind);
 
-  Check(subit.next);
-  Check(BSON_TYPE_DOCUMENT = subit.Kind);
-  CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_VALUE, subit.key);
-
-  valueit := subit.subiterator;
-  Check(valueit.next);
-  Check(BSON_TYPE_DOCUMENT = valueit.Kind);
-
-  Check(it.next);
-  Check(BSON_TYPE_DOCUMENT = it.Kind);
-  CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_KEY + SERIALIZED_ATTRIBUTE_COLLECTION_VALUE, it.key);
-
-  subit := it.subiterator;
-  Check(subit.next);
-  Check(BSON_TYPE_DOCUMENT = subit.Kind);
-  CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_KEY, subit.key);
-
-  keyit := subit.subiterator;
-  Check(keyit.next);
-  Check(BSON_TYPE_UTF8 = keyit.Kind);
-  CheckEqualsString('a', keyit.Value);
-
-  Check(subit.next);
-  Check(BSON_TYPE_DOCUMENT = subit.Kind);
-  CheckEqualsString(SERIALIZED_ATTRIBUTE_COLLECTION_VALUE, subit.key);
-
-  valueit := subit.subiterator;
-  Check(valueit.next);
-  Check(BSON_TYPE_INT32 = valueit.Kind);
-  CheckEquals(1, valueit.Value);
+    Check(valueit.next);
+    Check(BSON_TYPE_INT32 = valueit.Kind);
+    Check((valueit.Value = 1) or (valueit.Value = 5));
+  end;
 
   newDh := TDictionaryHolder.Create;
   try
@@ -937,10 +911,10 @@ begin
     FDeserializer.Source := b.find('dict').subiterator;
     FDeserializer.Deserialize(TObject(newDh), nil);
 
-    Check(newDh.StrDict.TryGetValue('item1', TObject(subObj)));
+    Check(newDh.StrDict.TryGetValue('a', TObject(subObj)));
+    CheckEquals(1, subObj.TheInt);
+    Check(newDh.StrDict.TryGetValue('b', TObject(subObj)));
     CheckEquals(5, subObj.TheInt);
-    Check(newDh.StrDict.TryGetValue('a', newInt));
-    CheckEquals(1, newInt);
   finally
     newDh.Free;
   end;

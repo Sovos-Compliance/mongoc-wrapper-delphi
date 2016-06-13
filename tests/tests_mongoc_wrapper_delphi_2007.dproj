@@ -56,6 +56,10 @@
     <DCC_UNIT_EXPERIMENTAL>False</DCC_UNIT_EXPERIMENTAL>
     <DCC_HIDDEN_VIRTUAL>False</DCC_HIDDEN_VIRTUAL>
     <DCC_WIDECHAR_REDUCED>False</DCC_WIDECHAR_REDUCED>
+    <DCC_SymbolReferenceInfo>2</DCC_SymbolReferenceInfo>
+    <DCC_DebugInfoInExe>True</DCC_DebugInfoInExe>
+    <DCC_DebugVN>True</DCC_DebugVN>
+    <DCC_GenerateStackFrames>True</DCC_GenerateStackFrames>
   </PropertyGroup>
   <ProjectExtensions>
     <Borland.Personality>Delphi.Personality</Borland.Personality>
@@ -71,7 +75,6 @@
     <DCCReference Include="..\src\LibBsonAPI.pas" />
     <DCCReference Include="..\src\MongoBson.pas" />
     <DCCReference Include="..\src\MongoBsonSerializer.pas" />
-    <DCCReference Include="..\src\uCnvDictionary.pas" />
     <DCCReference Include="..\src\uDelphi5.pas" />
     <DCCReference Include="..\src\uLibMongocAPI.pas" />
     <DCCReference Include="..\src\uMongo.pas" />

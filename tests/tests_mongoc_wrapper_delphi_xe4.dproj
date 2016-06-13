@@ -182,7 +182,6 @@
         <DCCReference Include="..\src\LibBsonAPI.pas"/>
         <DCCReference Include="..\src\MongoBson.pas"/>
         <DCCReference Include="..\src\MongoBsonSerializer.pas"/>
-        <DCCReference Include="..\src\uCnvDictionary.pas"/>
         <DCCReference Include="..\src\uDelphi5.pas"/>
         <DCCReference Include="uMain.pas"/>
         <DCCReference Include="..\src\uLibMongocAPI.pas"/>
