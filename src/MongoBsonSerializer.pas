@@ -200,6 +200,8 @@ type
     procedure Deserialize(var ATarget: TObject; AContext: Pointer); override;
   end;
 
+  TPropInfosDictionary = class({$IFDEF CPUX64} TCnvInt64Dictionary {$ELSE} TCnvIntegerDictionary {$ENDIF});
+
 var
   Serializers : TClassPairList;
   Deserializers : TClassPairList;
@@ -209,7 +211,7 @@ var
 
 threadvar
   // To reduce contention maintaining cache of PropInfosDictionary we will keep one cache per thread using a threadvar (TLS)
-  PropInfosDictionaryDictionary : TCnvIntegerDictionary;
+  PropInfosDictionaryDictionary : TPropInfosDictionary;
 
 constructor EDynArrayUnsupported.Create;
 begin
@@ -223,11 +225,11 @@ begin
     system.Delete(Result, 1, 1);
 end;
 
-function GetPropInfosDictionaryDictionary : TCnvIntegerDictionary;
+function GetPropInfosDictionaryDictionary : TPropInfosDictionary;
 begin
   if PropInfosDictionaryDictionary = nil then
     begin
-      PropInfosDictionaryDictionary := TCnvIntegerDictionary.Create(true);
+      PropInfosDictionaryDictionary := TPropInfosDictionary.Create(true);
       try
         PropInfosDictionaryCacheTrackingListLock.Acquire;
         try
@@ -353,7 +355,7 @@ begin
   if AObj = nil then
     raise EBsonSerializationException.Create(SCanTBuildPropInfoListOfANilObjec);
 
-  if GetPropInfosDictionaryDictionary.TryGetValue(Integer(AObj.ClassType), o) then
+  if GetPropInfosDictionaryDictionary.TryGetValue({$IFDEF CPUX64} Int64 {$ELSE} Integer {$ENDIF}(AObj.ClassType), o) then
   begin
     Result := TCnvStringDictionary(o);
     exit;
@@ -370,7 +372,7 @@ begin
     try
       for i := 0 to TypeData.PropCount - 1 do
         Result.AddOrSetValue(PropList[i].Name, TObject(PropList[i]));
-      GetPropInfosDictionaryDictionary.AddOrSetValue(Integer(AObj.ClassType), Result);
+      GetPropInfosDictionaryDictionary.AddOrSetValue({$IFDEF CPUX64} Int64 {$ELSE} Integer {$ENDIF}(AObj.ClassType), Result);
     finally
       FreeMem(PropList);
     end;
@@ -1165,7 +1167,7 @@ var
   i : integer;
 begin
   for i := 0 to PropInfosDictionaryCacheTrackingList.Count - 1 do
-    TCnvIntegerDictionary(PropInfosDictionaryCacheTrackingList[i]).Free;
+    TPropInfosDictionary(PropInfosDictionaryCacheTrackingList[i]).Free;
 end;
 
 initialization
