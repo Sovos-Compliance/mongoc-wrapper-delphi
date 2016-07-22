@@ -928,13 +928,10 @@ const
   SomeData : PAnsiChar = '1234567890qwertyuiop';
   Buf      : PAnsiChar = '                    ';
 var
-  it, SubIt, SubSubIt : IBsonIterator;
+  it, SubIt : IBsonIterator;
   Obj : TSuperObject;
   Obj2 : TSuperObject;
-  v : Variant;
   b : IBson;
-  bin : IBsonBinary;
-  I : Integer;
   Arr : ISuperObject;
 begin
   FSerializer.Free;
