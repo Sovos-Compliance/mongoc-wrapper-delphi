@@ -43,7 +43,7 @@ type
 implementation
 
 uses
-  MongoBson, Classes, SysUtils, uDelphi5, SuperObject;
+  MongoBson, Classes, SysUtils, uDelphi5, SuperObject, CnvSuperObject;
 
 const
   DATE_TIME_EPSILON = 1000;
@@ -930,7 +930,7 @@ const
 var
   it, SubIt, SubSubIt : IBsonIterator;
   Obj : TSuperObject;
-  Obj2 : TTestObject;
+  Obj2 : TSuperObject;
   v : Variant;
   b : IBson;
   bin : IBsonBinary;
@@ -939,11 +939,11 @@ var
 begin
   FSerializer.Free;
   FSerializer := CreateSerializer(TSuperObject);
+  FDeserializer.Free;
+  FDeserializer := CreateDeserializer(TSuperObject);
   FSerializer.Target := NewBsonBuffer();
-  Obj := TSuperObject.Create;
+  Obj := TCnvSuperObject.Create;
   try
-    Obj.RefCountingDisabled := True;
-
     Obj.I['The_00_Int'] := 10;
     Obj.I['The_01_Int64'] := 11;
     Obj.D['The_04_Float'] := 1.5;
@@ -1001,88 +1001,22 @@ begin
 
     Check(not it.next, 'Iterator should be at end');
 
-    (*Obj2 := TTestObject.Create;
-    Obj2.The_17_VariantTwoDimArray := VarArrayCreate([0, 1, 0, 1], varInteger);
-    SetLength(dynIntArrArr, 2);
-    for I := 0 to Length(dynIntArrArr) - 1 do
-      SetLength(dynIntArrArr[I], 2);
-    {$IFDEF DELPHI2007}
-    obj2.The_24_DynIntArrArr := dynIntArrArr;
-    {$ENDIF}
     try
-      obj2.The_23_EmptySet := [eFirst];
       FDeserializer.Source := b.iterator;
       FDeserializer.Deserialize(TObject(Obj2), nil);
 
-      CheckEquals(10, obj2.The_00_Int, 'Value of The_00_Int doesn''t match');
-      CheckEquals(11, obj2.The_01_Int64, 'Value of The_01_Int64 doesn''t match');
-      CheckEquals(integer(eSecond), integer(obj2.The_03_Enumeration), 'Value of The_03_Enumeration doesn''t match');
-      CheckEquals(1.5, obj2.The_04_Float, 'Value of The_04_Float doesn''t match');
-      {$IFDEF DELPHIXE}
-      CheckEqualsString('???', obj2.The_05_String, 'The_05_String should be equals to "???"');
-      {$ELSE}
-      CheckEqualsString('home', obj2.The_05_String, 'The_05_String should be equals to "home"');
-      {$ENDIF}
-      CheckEqualsString('Hello', obj2.The_06_ShortString, 'The_06_ShortString should be equals to "Hello"');
-      Check(obj2.The_07_Set = [eFirst, eSecond], 'obj2.The_07_Set = [eFirst, eSecond]');
-
-      CheckEquals(12, Obj2.The_08_SubObject.TheInt, 'Obj.The_08_SubObject.TheInt should be 12');
-
-      {$IFDEF DELPHI2007}
-      CheckEquals(2, Length(Obj2.The_09_DynIntArr), 'Obj2.The_09_DynIntArr Length should = 2');
-      CheckEquals(1, Obj2.The_09_DynIntArr[0], 'Value of The_09_DynIntArr[0] doesn''t match');
-      CheckEquals(2, Obj2.The_09_DynIntArr[1], 'Value of The_09_DynIntArr[1] doesn''t match');
-      {$ENDIF}
-
-      CheckEqualsString('Hello World', Obj2.The_11_AnsiString, 'Obj2.The_11_AnsiString doesn''t match value');
-
-      {$IFDEF DELPHIXE}
-      CheckEqualsString('???', Obj2.The_13_StringList[0]);
-      CheckEqualsString('??', Obj.The_13_StringList[1]);
-      {$ELSE}
-      CheckEqualsString('home', Obj2.The_13_StringList[0]);
-      CheckEqualsString('ome', Obj.The_13_StringList[1]);
-      {$ENDIF}
-
-      CheckEqualsWideString({$IFDEF DELPHI2007}#1076{$ELSE}'d'{$ENDIF}, Obj2.The_10_WChar, 'Obj2.The_10_WChar doesn''t match');
-
-      CheckEquals(14, Obj2.The_14_VariantAsInteger, 'Obj2.The_14_VariantAsInteger doesn''t match value');
-
-      {$IFDEF DELPHIXE}
-      CheckEqualsString('??? ??? ???', Obj2.The_15_VariantAsString, 'Obj2.The_15_VariantAsString doesn''t match expected value');
-      {$ELSE}
-      CheckEqualsWideString('alo', UTF8Decode(Obj2.The_15_VariantAsString), 'Iterator doesn''t match');
-      {$ENDIF}
-
-      CheckEquals(0, VarArrayLowBound(Obj2.The_16_VariantAsArray, 1), 'Obj2.The_16_VariantAsArray low bound equals 0');
-      CheckEquals(1, VarArrayHighBound(Obj2.The_16_VariantAsArray, 1), 'Obj2.The_16_VariantAsArray high bound equals 1');
-      CheckEquals(16, Obj2.The_16_VariantAsArray[0], 'Value of The_16_VariantAsArray[0] doesn''t match');
-      CheckEquals(22, Obj2.The_16_VariantAsArray[1], 'Value of The_16_VariantAsArray[1] doesn''t match');
-
-      CheckEquals(16, Obj2.The_17_VariantTwoDimArray[0, 0], 'Value of The_17_VariantTwoDimArray[0, 0] doesn''t match');
-      CheckEquals(22, Obj2.The_17_VariantTwoDimArray[0, 1], 'Value of The_17_VariantTwoDimArray[0, 1] doesn''t match');
-      CheckEquals(33, Obj2.The_17_VariantTwoDimArray[1, 0], 'Value of The_17_VariantTwoDimArray[1, 0] doesn''t match');
-      CheckEquals(44, Obj2.The_17_VariantTwoDimArray[1, 1], 'Value of The_17_VariantTwoDimArray[1, 1] doesn''t match');
-
-      Check(Obj2.The_19_Boolean, 'Obj2.The_19_Boolean should be true');
-
-      CheckEquals(obj.The_20_DateTime, obj2.The_20_DateTime, 0.1, 'obj.The_20_DateTime = obj2.The_20_DateTime');
-
-      Check(obj2.The_23_EmptySet = [], 'The_23_EmptySet should be empty');
-
-      CheckEquals(length(SomeData), obj2.The_21_MemStream.Size, 'data size doesn''t match');
-      Check(CompareMem(SomeData, obj2.The_21_MemStream.Memory, obj2.The_21_MemStream.Size), 'memory doesn''t match');
-
-      {$IFDEF DELPHI2007}
-      CheckEquals(1, Obj2.The_24_DynIntArrArr[0, 0], 'Value of The_24_DynIntArrArr[0, 0] doesn''t match');
-      CheckEquals(2, Obj2.The_24_DynIntArrArr[0, 1], 'Value of The_24_DynIntArrArr[0, 1] doesn''t match');
-      CheckEquals(3, Obj2.The_24_DynIntArrArr[1, 0], 'Value of The_24_DynIntArrArr[1, 0] doesn''t match');
-      CheckEquals(4, Obj2.The_24_DynIntArrArr[1, 1], 'Value of The_24_DynIntArrArr[1, 1] doesn''t match');
-      {$ENDIF}
+      CheckEquals(10, Obj2.I['The_00_Int'], 'Value of The_00_Int doesn''t match');
+      CheckEquals(11, Obj2.I['The_01_Int64'], 'Value of The_01_Int64 doesn''t match');
+      CheckEquals(1.5, Obj2.D['The_04_Float'], 'Value of The_04_Float doesn''t match');
+      CheckEqualsString('home', Obj2.S['The_05_String'], 'The_05_String should be equals to "home"');
+      CheckEquals(12, Obj2.O['The_08_SubObject'].I['TheInt'], 'Obj.The_08_SubObject.TheInt should be 12');
+      CheckEquals(2, Obj2.A['The_09_DynIntArr'].Length, 'Obj2.The_09_DynIntArr Length should = 2');
+      CheckEquals(1, Obj2.A['The_09_DynIntArr'].I[0], 'Value of The_09_DynIntArr[0] doesn''t match');
+      CheckEquals(2, Obj2.A['The_09_DynIntArr'].I[1], 'Value of The_09_DynIntArr[1] doesn''t match');
+      Check(Obj2.B['The_19_Boolean'], 'Obj2.The_19_Boolean should be true');
     finally
       Obj2.Free;
     end;
-    *)
   finally
     Obj.Free;
   end;
