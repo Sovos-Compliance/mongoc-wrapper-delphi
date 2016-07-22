@@ -126,7 +126,7 @@ implementation
 uses
   SyncObjs, uLinkedListDefaultImplementor, uScope
   {$IFNDEF VER130}, Variants{$ELSE}{$IFDEF Enterprise}, Variants{$ENDIF}{$ENDIF},
-  uDelphi5;
+  uDelphi5, SuperObject, CnvSuperObject;
 
 const
   SBoolean = 'Boolean';
@@ -178,6 +178,23 @@ type
   TStreamBsonSerializer = class(TBaseBsonSerializer)
   public
     procedure Serialize(const AName: String; ASource: TObject); override;
+  end;
+
+  TSuperObjectBsonSerializer = class(TBaseBsonSerializer)
+  private
+    procedure SerializeSuperArray(const APropertyName: String; Arr: TSuperArray);
+    procedure SerializeSuperObject(const APropertyName: String; AObj: ISuperObject);
+    procedure SerializeSuperObjectProperty(const APropertyName: String; AProperty: ISuperObject);
+  public
+    procedure Serialize(const AName: String; ASource: TObject); override;
+  end;
+
+  TSuperObjectBsonDeserializer = class(TBaseBsonDeserializer)
+  private
+    procedure DeserializeSuperArray(const APropertyName: String; ATarget: TSuperObject);
+    procedure DeserializeSuperObject(const APropertyName: String; ATarget: TSuperObject);
+  public
+    procedure Deserialize(var ATarget: TObject; AContext: Pointer); override;
   end;
 
   TStringsBsonDeserializer = class(TBaseBsonDeserializer)
@@ -482,7 +499,7 @@ begin
       {$ENDIF}
     end;
 
-  end;   
+  end;
 end;
 
 procedure TPrimitivesBsonSerializer.SerializeSet(APropInfo: PPropInfo; ASource:
@@ -1170,6 +1187,127 @@ begin
     TPropInfosDictionary(PropInfosDictionaryCacheTrackingList[i]).Free;
 end;
 
+{ TSuperObjectBsonSerializer }
+
+procedure TSuperObjectBsonSerializer.Serialize(const AName: String; ASource: TObject);
+var
+  Iter: TSuperObjectIter;
+  Obj : ISuperObject;
+begin
+  if AName <> '' then
+    Target.startObject(AName);
+  Iter.Ite := nil;
+  ASource.GetInterface(ISuperObject, Obj);
+  try
+    if ObjectFindFirst(Obj, Iter) then
+    repeat
+      SerializeSuperObjectProperty(Iter.key, Iter.val);
+    until not ObjectFindNext(Iter);
+  finally
+    if Iter.Ite <> nil then
+      ObjectFindClose(Iter);
+  end;
+  if AName <> '' then
+    Target.finishObject;
+end;
+
+procedure TSuperObjectBsonSerializer.SerializeSuperArray(const APropertyName: String; Arr: TSuperArray);
+var
+  i : Integer;
+begin
+  Target.startArray(APropertyName);
+  for i := 0 to Arr.Length - 1 do
+    SerializeSuperObjectProperty('', Arr[i]);
+  Target.finishObject;
+end;
+
+procedure TSuperObjectBsonSerializer.SerializeSuperObject(const APropertyName: String; AObj: ISuperObject);
+var
+  SubSerializer : TBaseBsonSerializer;
+begin
+  SubSerializer := CreateSerializer(TSuperObject);
+  try
+    SubSerializer.Target := Target;
+    SubSerializer.Serialize(APropertyName, AObj.This);
+  finally
+    SubSerializer.Free;
+  end;
+end;
+
+procedure TSuperObjectBsonSerializer.SerializeSuperObjectProperty(const APropertyName: String; AProperty: ISuperObject);
+begin
+  case AProperty.DataType of
+    stInt : Target.append(APropertyName, AProperty.AsInteger);
+    stBoolean : Target.append(APropertyName, AProperty.AsBoolean);
+    stDouble : Target.append(APropertyName, AProperty.AsDouble);
+    stCurrency : Target.append(APropertyName, AProperty.AsCurrency);
+    stObject : SerializeSuperObject(APropertyName, AProperty);
+    stArray : SerializeSuperArray(APropertyName, AProperty.AsArray);
+    stString : Target.appendStr(APropertyName, AProperty.AsString);
+  end;
+end;
+
+{ TSuperObjectBsonDeserializer }
+
+procedure TSuperObjectBsonDeserializer.Deserialize(var ATarget: TObject; AContext: Pointer);
+begin
+  if ATarget = nil then
+    ATarget := TCnvSuperObject.Create;
+  while Source.next do
+    begin
+      if Source.key = SERIALIZED_ATTRIBUTE_ACTUALTYPE then
+        continue;
+      with ATarget as TSuperObject do
+        case Source.Kind of
+          BSON_TYPE_INT32 : I[Source.key] := Source.AsInteger;
+          BSON_TYPE_BOOL : B[Source.key] := Source.AsBoolean;
+          BSON_TYPE_INT64 : I[Source.key] := Source.AsInt64;
+          BSON_TYPE_UTF8, BSON_TYPE_SYMBOL : S[Source.key] := Source.AsUTF8String;
+          BSON_TYPE_DOUBLE : D[Source.key] := Source.AsDouble;
+          BSON_TYPE_DATE_TIME : D[Source.key] := Source.AsDateTime;
+          BSON_TYPE_ARRAY : DeserializeSuperArray(Source.Key, ATarget as TSuperObject);
+          BSON_TYPE_DOCUMENT : DeserializeSuperObject(Source.Key, ATarget as TSuperObject);
+          BSON_TYPE_BINARY : { Binary type not supported for now } ;
+        end;
+    end;
+end;
+
+procedure TSuperObjectBsonDeserializer.DeserializeSuperArray(const APropertyName: String; ATarget: TSuperObject);
+var
+  ArraySuperObject : ISuperObject;
+  ArraySuperObjectRef : TObject;
+  SubDeserializer : TBaseBsonDeserializer;
+begin
+  ArraySuperObject := TSuperObject.Create(stArray);
+  ArraySuperObjectRef := ArraySuperObject.This;
+  ATarget[APropertyName] := ArraySuperObject;
+  SubDeserializer := CreateDeserializer(TSuperObject);
+  try
+    SubDeserializer.Source := Source.subiterator;
+    SubDeserializer.Deserialize(ArraySuperObjectRef, nil);
+  finally
+    SubDeserializer.Free;
+  end;
+end;
+
+procedure TSuperObjectBsonDeserializer.DeserializeSuperObject(const APropertyName: String; ATarget: TSuperObject);
+var
+  SubDeserializer : TBaseBsonDeserializer;
+  SubObject : ISuperObject;
+  SubObjectTarget : TObject;
+begin
+  SubDeserializer := CreateDeserializer(TSuperObject);
+  try
+    SubDeserializer.Source := Source.subiterator;
+    SubObject := TSuperObject.Create;
+    SubObjectTarget := SubObject.This;
+    ATarget.O[APropertyName] := SubObject;
+    SubDeserializer.Deserialize(SubObjectTarget, nil);
+  finally
+    SubDeserializer.Free;
+  end;
+end;
+
 initialization
   DictionarySerializationMode := Simple;
 
@@ -1181,17 +1319,21 @@ initialization
   RegisterClassSerializer(TObject, TDefaultObjectBsonSerializer);
   RegisterClassSerializer(TStrings, TStringsBsonSerializer);
   RegisterClassSerializer(TStream, TStreamBsonSerializer);
+  RegisterClassSerializer(TSuperObject, TSuperObjectBsonSerializer);
   RegisterClassSerializer(TObjectAsStringList, TObjectAsStringListBsonSerializer);
   RegisterClassDeserializer(TObject, TPrimitivesBsonDeserializer);
   RegisterClassDeserializer(TStrings, TStringsBsonDeserializer);
   RegisterClassDeserializer(TStream, TStreamBsonDeserializer);
   RegisterClassDeserializer(TObjectAsStringList, TObjectAsStringListBsonDeserializer);
+  RegisterClassDeserializer(TSuperObject, TSuperObjectBsonDeserializer);
 finalization
   DestroyPropInfosDictionaryCache;
+  UnregisterClassDeserializer(TSuperObject, TSuperObjectBsonDeserializer);
   UnRegisterClassDeserializer(TStream, TStreamBsonDeserializer);
   UnRegisterClassDeserializer(TObject, TPrimitivesBsonDeserializer);
   UnRegisterClassDeserializer(TStrings, TStringsBsonDeserializer);
   UnRegisterClassDeserializer(TObjectAsStringList, TObjectAsStringListBsonDeserializer);
+  UnRegisterClassSerializer(TSuperObject, TSuperObjectBsonSerializer); 
   UnRegisterClassSerializer(TStream, TStreamBsonSerializer);
   UnRegisterClassSerializer(TStrings, TStringsBsonSerializer);
   UnRegisterClassSerializer(TObject, TDefaultObjectBsonSerializer);

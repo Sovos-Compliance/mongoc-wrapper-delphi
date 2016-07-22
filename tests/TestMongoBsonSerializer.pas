@@ -36,13 +36,14 @@ type
     {$ENDIF}
     procedure StringDictionarySimple;
     procedure StringDictionaryComplex;
+    procedure TestSerializePrimitiveTypesSuperObject;
   end;
   {$M-}
 
 implementation
 
 uses
-  MongoBson, Classes, SysUtils, uDelphi5;
+  MongoBson, Classes, SysUtils, uDelphi5, SuperObject, CnvSuperObject;
 
 const
   DATE_TIME_EPSILON = 1000;
@@ -920,6 +921,102 @@ begin
   end;
 
   DictionarySerializationMode := Simple;
+end;
+
+procedure TestTMongoBsonSerializer.TestSerializePrimitiveTypesSuperObject;
+const
+  SomeData : PAnsiChar = '1234567890qwertyuiop';
+  Buf      : PAnsiChar = '                    ';
+var
+  it, SubIt : IBsonIterator;
+  Obj : TSuperObject;
+  Obj2 : TSuperObject;
+  b : IBson;
+  Arr : ISuperObject;
+begin
+  FSerializer.Free;
+  FSerializer := CreateSerializer(TSuperObject);
+  FDeserializer.Free;
+  FDeserializer := CreateDeserializer(TSuperObject);
+  FSerializer.Target := NewBsonBuffer();
+  Obj := TCnvSuperObject.Create;
+  try
+    Obj.I['The_00_Int'] := 10;
+    Obj.I['The_01_Int64'] := 11;
+    Obj.D['The_04_Float'] := 1.5;
+    Obj.S['The_05_String'] := 'home';
+    Obj.O['The_08_SubObject'] := TSuperObject.Create;
+    Obj.O['The_08_SubObject'].I['TheInt'] := 12;
+    Arr := TSuperObject.Create(stArray);
+    Arr.I[''] := 1;
+    Arr.I[''] := 2;
+    Obj['The_09_DynIntArr'] := Arr;
+    Obj.B['The_19_Boolean'] := True;
+
+    FSerializer.Serialize('', Obj);
+
+    b := FSerializer.Target.finish;
+    it := b.iterator;
+    CheckTrue(it.Next, 'Iterator should not be at end');
+    CheckEqualsString('The_00_Int', it.key);
+    CheckEquals(10, it.value, 'Iterator should be equals to 10');
+
+    CheckTrue(it.Next, 'Iterator should not be at end');
+    CheckEqualsString('The_01_Int64', it.key);
+    CheckEquals(11, it.AsInt64, 'Iterator should be equals to 11');
+
+    CheckTrue(it.Next, 'Iterator should not be at end');
+    CheckEqualsString('The_09_DynIntArr', it.key);
+    Check(it.Kind = BSON_TYPE_ARRAY, 'Type of iterator value should be bsonARRAY');
+    SubIt := it.subiterator;
+    CheckTrue(SubIt.Next, 'Array SubIterator should not be at end');
+    CheckEquals(1, SubIt.Value, 'Iterator should be equals to 1');
+    CheckTrue(SubIt.Next, 'Array SubIterator should not be at end');
+    CheckEquals(2, SubIt.Value, 'Iterator should be equals to 2');
+    Check(not SubIt.next, 'Iterator should be at end');
+
+    CheckTrue(it.Next, 'Iterator should not be at end');
+    CheckEqualsString('The_05_String', it.key);
+    CheckEqualsString('home', it.Value, 'Iterator should be equals to "home"');
+
+    CheckTrue(it.Next, 'Iterator should not be at end');
+    CheckEqualsString('The_08_SubObject', it.key);
+    Check(it.Kind = BSON_TYPE_DOCUMENT, 'Type of iterator value should be bsonOBJECT');
+    SubIt := it.subiterator;
+    CheckTrue(SubIt.Next, 'SubIterator should not be at end');
+    CheckEquals(12, SubIt.Value, 'Iterator should be equals to 12');
+    Check(not SubIt.next, 'Iterator should be at end');
+
+    CheckTrue(it.Next, 'Iterator should not be at end');
+    CheckEqualsString('The_19_Boolean', it.key);
+    CheckEquals(True, it.AsBoolean);
+
+    // For some reason, The_04_Float comes at end. Some AVL tree structure
+    CheckTrue(it.Next, 'Iterator should not be at end');
+    CheckEqualsString('The_04_Float', it.key);
+    CheckEquals(1.5, it.Value, 'Iterator should be equals to 1.5');
+
+    Check(not it.next, 'Iterator should be at end');
+
+    try
+      FDeserializer.Source := b.iterator;
+      FDeserializer.Deserialize(TObject(Obj2), nil);
+
+      CheckEquals(10, Obj2.I['The_00_Int'], 'Value of The_00_Int doesn''t match');
+      CheckEquals(11, Obj2.I['The_01_Int64'], 'Value of The_01_Int64 doesn''t match');
+      CheckEquals(1.5, Obj2.D['The_04_Float'], 'Value of The_04_Float doesn''t match');
+      CheckEqualsString('home', Obj2.S['The_05_String'], 'The_05_String should be equals to "home"');
+      CheckEquals(12, Obj2.O['The_08_SubObject'].I['TheInt'], 'Obj.The_08_SubObject.TheInt should be 12');
+      CheckEquals(2, Obj2.A['The_09_DynIntArr'].Length, 'Obj2.The_09_DynIntArr Length should = 2');
+      CheckEquals(1, Obj2.A['The_09_DynIntArr'].I[0], 'Value of The_09_DynIntArr[0] doesn''t match');
+      CheckEquals(2, Obj2.A['The_09_DynIntArr'].I[1], 'Value of The_09_DynIntArr[1] doesn''t match');
+      Check(Obj2.B['The_19_Boolean'], 'Obj2.The_19_Boolean should be true');
+    finally
+      Obj2.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
 end;
 
 { TIntSubObject }
