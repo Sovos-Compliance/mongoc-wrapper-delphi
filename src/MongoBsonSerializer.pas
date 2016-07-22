@@ -191,7 +191,7 @@ type
 
   TSuperObjectBsonDeserializer = class(TBaseBsonDeserializer)
   private
-    procedure DeserializeArray(const APropertyName: String; ATarget: TSuperObject);
+    procedure DeserializeSuperArray(const APropertyName: String; ATarget: TSuperObject);
     procedure DeserializeSuperObject(const APropertyName: String; ATarget: TSuperObject);
   public
     procedure Deserialize(var ATarget: TObject; AContext: Pointer); override;
@@ -1247,6 +1247,8 @@ begin
   end;
 end;
 
+{ TSuperObjectBsonDeserializer }
+
 procedure TSuperObjectBsonDeserializer.Deserialize(var ATarget: TObject; AContext: Pointer);
 begin
   if ATarget = nil then
@@ -1263,14 +1265,14 @@ begin
           BSON_TYPE_UTF8, BSON_TYPE_SYMBOL : S[Source.key] := Source.AsUTF8String;
           BSON_TYPE_DOUBLE : D[Source.key] := Source.AsDouble;
           BSON_TYPE_DATE_TIME : D[Source.key] := Source.AsDateTime;
-          BSON_TYPE_ARRAY : DeserializeArray(Source.Key, ATarget as TSuperObject);
+          BSON_TYPE_ARRAY : DeserializeSuperArray(Source.Key, ATarget as TSuperObject);
           BSON_TYPE_DOCUMENT : DeserializeSuperObject(Source.Key, ATarget as TSuperObject);
           BSON_TYPE_BINARY : { Binary type not supported for now } ;
         end;
     end;
 end;
 
-procedure TSuperObjectBsonDeserializer.DeserializeArray(const APropertyName: String; ATarget: TSuperObject);
+procedure TSuperObjectBsonDeserializer.DeserializeSuperArray(const APropertyName: String; ATarget: TSuperObject);
 var
   ArraySuperObject : ISuperObject;
   ArraySuperObjectRef : TObject;
