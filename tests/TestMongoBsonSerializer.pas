@@ -997,7 +997,7 @@ begin
     CheckEquals(1.5, it.Value, 'Iterator should be equals to 1.5');
 
     Check(not it.next, 'Iterator should be at end');
-
+    Obj2 := nil;
     try
       FDeserializer.Source := b.iterator;
       FDeserializer.Deserialize(TObject(Obj2), nil);
