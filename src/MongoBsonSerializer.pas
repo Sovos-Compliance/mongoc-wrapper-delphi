@@ -36,26 +36,32 @@ type
 
   EBsonSerializationException = class(Exception);
 
+  TBaseBsonSerialization = class
+  public
+    constructor Create; virtual; abstract;
+  end;
+  TBaseBsonSerializationClass = class of TBaseBsonSerialization;
+
   EBsonSerializer = class(Exception);
   TBaseBsonSerializerClass = class of TBaseBsonSerializer;
-  TBaseBsonSerializer = class
+  TBaseBsonSerializer = class(TBaseBsonSerialization)
   private
     FTarget: IBsonBuffer;
   protected
     procedure Serialize_type(ASource: TObject);
   public
-    constructor Create; virtual;
+    constructor Create; override;
     procedure Serialize(const AName: String; ASource: TObject); virtual; abstract;
     property Target: IBsonBuffer read FTarget write FTarget;
   end;
 
   EBsonDeserializer = class(Exception);
   TBaseBsonDeserializerClass = class of TBaseBsonDeserializer;
-  TBaseBsonDeserializer = class
+  TBaseBsonDeserializer = class(TBaseBsonSerialization)
   private
     FSource: IBsonIterator;
   public
-    constructor Create; virtual;
+    constructor Create; override;
     procedure Deserialize(var ATarget: TObject; AContext: Pointer); virtual; abstract;
     property Source: IBsonIterator read FSource write FSource;
   end;
@@ -139,7 +145,6 @@ resourcestring
   SCanTBuildPropInfoListOfANilObjec = 'Can''t build PropInfo list of a nil object';
   SObjectHasNotPublishedProperties = 'Object has not published properties. review your logic';
   SFailedObtainingTypeDataOfObject = 'Failed obtaining TypeData of object %s';
-  SCouldNotFindClass = 'Could not find target for class %s';
 
 type
   TObjectDynArray = array of TObject;
@@ -229,6 +234,8 @@ var
 threadvar
   // To reduce contention maintaining cache of PropInfosDictionary we will keep one cache per thread using a threadvar (TLS)
   PropInfosDictionaryDictionary : TPropInfosDictionary;
+
+function BuildSuperObject(const AClassName : string; AContext : Pointer) : TObject; forward;
 
 constructor EDynArrayUnsupported.Create;
 begin
@@ -320,10 +327,10 @@ begin
   for i := List.Count - 1 downto 0 do
     if AClass.InheritsFrom(List[i].Key) then
       begin
-        Result := TBaseBsonSerializerClass(List[i].Value).Create;
+        Result := TBaseBsonSerializationClass(List[i].Value).Create;
         exit;
       end;
-  raise EBsonSerializer.CreateFmt(SCouldNotFindClass, [AClass.ClassName]);
+  Result := nil;
 end;
 
 function CreateSerializer(AClass : TClass): TBaseBsonSerializer;
@@ -400,7 +407,6 @@ end;
 
 constructor TBaseBsonSerializer.Create;
 begin
-  inherited Create;
 end;
 
 procedure TBaseBsonSerializer.Serialize_type(ASource: TObject);
@@ -724,7 +730,6 @@ end;
 
 constructor TBaseBsonDeserializer.Create;
 begin
-  inherited Create;
 end;
 
 class function TPrimitivesBsonDeserializer.BuildObject(const _Type: string; AContext: Pointer): TObject;
@@ -733,7 +738,7 @@ var
 begin
   BuilderFn := GetSerializableObjectBuilderFunction(_Type);
   if not Assigned(BuilderFn) then
-    raise EBsonDeserializer.CreateFmt(SSuitableBuilderNotFoundForClass, [_Type]);
+    BuilderFn := BuildSuperObject;
   Result := BuilderFn(_Type, AContext);
 end;
 
@@ -755,6 +760,7 @@ var
   {$ENDIF}
   v : Variant;
   PropInfosDictionary : TCnvStringDictionary;
+  Deserializer : TBaseBsonDeserializer;
   (* We need this safe function because if variant Av param represents a zero size array
      the call to DynArrayFromVariant() will fail rather than assigning nil to Apo parameter *)
   procedure SafeDynArrayFromVariant(var Apo : Pointer; const Av : Variant; ATypeInfo: Pointer);
@@ -766,8 +772,23 @@ var
 begin
   while Source.next do
     begin
-      if (ATarget = nil) and (Source.key = SERIALIZED_ATTRIBUTE_ACTUALTYPE) then
-        ATarget := BuildObject(Source.value, AContext);
+      if ATarget = nil then
+      begin
+        if Source.key = SERIALIZED_ATTRIBUTE_ACTUALTYPE then
+          ATarget := BuildObject(Source.value, AContext)
+        else ATarget := BuildObject('', AContext);
+        if ATarget is TSuperObject then
+        begin
+          Deserializer := CreateDeserializer(TSuperObject);
+          try
+            Deserializer.Source := Source;
+            Deserializer.Deserialize(ATarget, AContext);
+          finally
+            Deserializer.Free;
+          end;
+          exit;
+        end;
+      end;
       PropInfosDictionary := GetPropInfosDictionary(ATarget);
       if not PropInfosDictionary.TryGetValue(Source.key, TObject(p)) then
         continue;
@@ -1253,7 +1274,9 @@ procedure TSuperObjectBsonDeserializer.Deserialize(var ATarget: TObject; AContex
 begin
   if ATarget = nil then
     ATarget := TCnvSuperObject.Create;
-  while Source.next do
+  // Using repeat..until works for cursors that are positioned right before the start or when the
+  // first attribute was already read, which can happen when deserializing a response with no _type attribute  
+  repeat
     begin
       if Source.key = SERIALIZED_ATTRIBUTE_ACTUALTYPE then
         continue;
@@ -1270,6 +1293,7 @@ begin
           BSON_TYPE_BINARY : { Binary type not supported for now } ;
         end;
     end;
+  until not Source.next;
 end;
 
 procedure TSuperObjectBsonDeserializer.DeserializeSuperArray(const APropertyName: String; ATarget: TSuperObject);
@@ -1306,6 +1330,11 @@ begin
   finally
     SubDeserializer.Free;
   end;
+end;
+
+function BuildSuperObject(const AClassName : string; AContext : Pointer) : TObject;
+begin
+  Result := TCnvSuperObject.Create;
 end;
 
 initialization
