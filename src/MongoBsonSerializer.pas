@@ -474,7 +474,7 @@ begin
       {$ENDIF}
       begin
         ADate := GetFloatProp(ASource, APropInfo);
-        Target.append(APropInfo.Name, ADate);
+        Target.appendDate(APropInfo.Name, ADate);
       end
       else Target.append(APropInfo.Name, GetFloatProp(ASource, APropInfo));
     {$IFDEF DELPHIXE} tkUString, {$ENDIF}
