@@ -49,7 +49,7 @@ const
   DATE_TIME_EPSILON = 1000;
 
 type
-  TEnumeration = (eFirst, eSecond);
+  TEnumeration = (eFirst, eSecond, eThird, eFourth);
   TEnumerationSet = set of TEnumeration;
   TDynIntArr = array of Integer;
   TDynIntArrArr = array of array of Integer;
@@ -369,7 +369,7 @@ begin
     Obj.The_00_Int := 10;
     Obj.The_01_Int64 := 11;
     Obj.The_02_AnsiChar := 'B';
-    Obj.The_03_Enumeration := eSecond;
+    Obj.The_03_Enumeration := eFourth;
     Obj.The_04_Float := 1.5;
     {$IFDEF DELPHIXE}
     Obj.The_05_String := 'дом';
@@ -450,7 +450,7 @@ begin
 
     CheckTrue(it.Next, 'Iterator should not be at end');
     CheckEqualsString('The_03_Enumeration', it.key);
-    CheckEqualsString('eSecond', AnsiString(it.Value), 'Iterator should be equals to "eSecond"');
+    CheckEquals(integer(eFourth), it.Value, 'Iterator should be equals to eFourth');
 
     CheckTrue(it.Next, 'Iterator should not be at end');
     CheckEqualsString('The_04_Float', it.key);
@@ -630,7 +630,7 @@ begin
 
       CheckEquals(10, obj2.The_00_Int, 'Value of The_00_Int doesn''t match');
       CheckEquals(11, obj2.The_01_Int64, 'Value of The_01_Int64 doesn''t match');
-      CheckEquals(integer(eSecond), integer(obj2.The_03_Enumeration), 'Value of The_03_Enumeration doesn''t match');
+      CheckEquals(integer(eFourth), integer(obj2.The_03_Enumeration), 'Value of The_03_Enumeration doesn''t match');
       CheckEquals(1.5, obj2.The_04_Float, 'Value of The_04_Float doesn''t match');
       {$IFDEF DELPHIXE}
       CheckEqualsString('дом', obj2.The_05_String, 'The_05_String should be equals to "дом"');

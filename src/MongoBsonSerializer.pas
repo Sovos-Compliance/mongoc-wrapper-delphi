@@ -465,7 +465,7 @@ begin
       if APropInfo^.PropType^.Name = SBoolean then
       {$ENDIF}
         Target.append(APropInfo.Name, GetEnumProp(ASource, APropInfo) = STrue)
-      else Target.appendStr(APropInfo.Name, UTF8String(GetEnumProp(ASource, APropInfo)));
+      else Target.append(APropInfo.Name, LongInt(GetOrdProp(ASource, APropInfo)));
     tkFloat :
       {$IFDEF DELPHIXE}
       if GetTypeData(TypeInfo(TDateTime)) = APropInfo^.PropType^.TypeData then
