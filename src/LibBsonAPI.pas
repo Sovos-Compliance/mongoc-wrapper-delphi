@@ -20,7 +20,24 @@ type
 
   PPByte = ^PByte;
 
+  TBsonVtableMalloc = function(num_bytes: NativeInt): Pointer; cdecl;
+  TBsonVtableCalloc = function(n_members, num_bytes: NativeInt): Pointer; cdecl;
+  TBsonVtableRealloc = function(mem: Pointer; num_bytes: NativeInt): Pointer; cdecl;
+  TBsonVtableFree = procedure(mem: Pointer); cdecl;
+  _bson_mem_vtable_t = record
+    malloc: TBsonVtableMalloc;
+    calloc: TBsonVtableCalloc;
+    realloc: TBsonVtableRealloc;
+    free: TBsonVtableFree;
+    padding: array[0..3] of Pointer;
+  end;
+  _bson_mem_vtable_p = ^_bson_mem_vtable_t;
+
+var
+  DelphiBsonMemVtable: _bson_mem_vtable_t;
+
 {$IFNDEF OnDemandLibbsonLoad}
+procedure bson_mem_set_vtable(vtable : _bson_mem_vtable_p); cdecl; external LibBson_DLL;
 function bson_malloc(length : Cardinal) : Pointer; cdecl; external LibBson_DLL;
 function bson_alloc : Pointer; cdecl; external LibBson_DLL;
 procedure bson_free(mem : Pointer); cdecl; external LibBson_DLL;
@@ -115,6 +132,7 @@ procedure LoadLibbsonFunctions(const dll: HMODULE);
 procedure FreeLibbsonLibrary;
 
 type
+  Tbson_mem_set_vtable = procedure(vtable : _bson_mem_vtable_p); cdecl;
   Tbson_alloc = function : Pointer; cdecl;
   Tbson_malloc = function(length : Cardinal) : Pointer; cdecl;
   Tbson_free = procedure(mem : Pointer); cdecl;
@@ -204,6 +222,7 @@ type
     binary : PPByte); cdecl;
 
 var
+  bson_mem_set_vtable: Tbson_mem_set_vtable;
   bson_alloc: Tbson_alloc;
   bson_malloc: Tbson_malloc;
   bson_free: Tbson_free;
@@ -288,6 +307,7 @@ var
 begin
   dllHandle := dll;
 
+  bson_mem_set_vtable := LoadLibbsonFunc('bson_mem_set_vtable');
   bson_alloc := LoadLibbsonFunc('bson_alloc');
   bson_malloc := LoadLibbsonFunc('bson_malloc');
   bson_free := LoadLibbsonFunc('bson_free');
@@ -370,9 +390,34 @@ begin
 end;
 {$ENDIF}
 
+function BsonVtableMalloc(num_bytes: NativeInt): Pointer; cdecl;
+begin
+  Result := GetMemory(num_bytes);
+end;
+
+function BsonVtableCalloc(n_members, num_bytes: NativeInt): Pointer; cdecl;
+begin
+  Result := GetMemory(n_members * num_bytes);
+  FillChar(PByte(Result)^, n_members * num_bytes, 0);
+end;
+
+function BsonVtableRealloc(mem: Pointer; num_bytes: NativeInt): Pointer; cdecl;
+begin
+  Result := ReallocMemory(mem, num_bytes);
+end;
+
+procedure BsonVtableFree(mem: Pointer); cdecl;
+begin
+  FreeMem(mem);
+end;
+
 initialization
   Assert(sizeof(bson_t) = 128, 'Keep structure synced with libbson bson_t');
   Assert(sizeof(bson_iter_t) = 128, 'Keep structure synced with libbson bson_iter_t');
   Assert(sizeof(bson_error_t) = 512, 'Keep structure synced with libbson bson_error_t');
+  DelphiBsonMemVtable.malloc := BsonVtableMalloc;
+  DelphiBsonMemVtable.calloc := BsonVtableCalloc;
+  DelphiBsonMemVtable.realloc := BsonVtableRealloc;
+  DelphiBsonMemVtable.free := BsonVtableFree;
 
 end.
