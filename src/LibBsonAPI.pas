@@ -82,7 +82,7 @@ function bson_append_regex(bson : bson_p; const key : PAnsiChar; key_length : In
 function bson_append_timestamp(bson : bson_p; const key : PAnsiChar; key_length : Integer;
   timestamp : LongWord; increment : LongWord) : ByteBool; cdecl; external LibBson_DLL;
 function bson_append_binary(bson : bson_p; const key : PAnsiChar; key_length : Integer;
-  subtype : TBsonSubtype; const binary : PByte; length : LongWord) : ByteBool; cdecl; external LibBson_DLL;
+  subtype : Integer; const binary : PByte; length : LongWord) : ByteBool; cdecl; external LibBson_DLL;
 function bson_append_null(bson : bson_p; const key : PAnsiChar; key_length : Integer) : ByteBool;
   cdecl; external LibBson_DLL;
 function bson_append_undefined(bson : bson_p; const key : PAnsiChar; key_length : Integer) : ByteBool;
@@ -103,7 +103,7 @@ procedure bson_oid_to_string(oid : PBsonOIDBytes; str : PAnsiChar); cdecl; exter
 function bson_iter_init(iter : bson_iter_p; const bson : bson_p) : ByteBool; cdecl; external LibBson_DLL;
 function bson_iter_init_find(iter : bson_iter_p; const bson : bson_p; const key : PAnsiChar) : ByteBool;
   cdecl; external LibBson_DLL;
-function bson_iter_type(const iter : bson_iter_p) : TBsonType; cdecl; external LibBson_DLL;
+function bson_iter_type(const iter : bson_iter_p) : Integer; cdecl; external LibBson_DLL;
 function bson_iter_next(iter : bson_iter_p) : ByteBool; cdecl; external LibBson_DLL;
 function bson_iter_key(const iter : bson_iter_p) : PAnsiChar; cdecl; external LibBson_DLL;
 function bson_iter_recurse(const iter : bson_iter_p; child : bson_iter_p) : ByteBool; cdecl; external LibBson_DLL;
@@ -177,7 +177,7 @@ type
   Tbson_append_timestamp = function(bson : bson_p; const key : PAnsiChar; key_length : Integer;
     timestamp : LongWord; increment : LongWord) : ByteBool; cdecl;
   Tbson_append_binary = function(bson : bson_p; const key : PAnsiChar; key_length : Integer;
-    subtype : TBsonSubtype; const binary : PByte; length : LongWord) : ByteBool; cdecl;
+    subtype : Integer; const binary : PByte; length : LongWord) : ByteBool; cdecl;
   Tbson_append_null = function(bson : bson_p; const key : PAnsiChar; key_length : Integer) : ByteBool;
     cdecl;
   Tbson_append_undefined = function(bson : bson_p; const key : PAnsiChar; key_length : Integer) : ByteBool;
@@ -198,7 +198,7 @@ type
   Tbson_iter_init = function(iter : bson_iter_p; const bson : bson_p) : ByteBool; cdecl;
   Tbson_iter_init_find = function(iter : bson_iter_p; const bson : bson_p; const key : PAnsiChar) : ByteBool;
     cdecl;
-  Tbson_iter_type = function(const iter : bson_iter_p) : TBsonType; cdecl;
+  Tbson_iter_type = function(const iter : bson_iter_p) : Integer; cdecl;
   Tbson_iter_next = function(iter : bson_iter_p) : ByteBool; cdecl;
   Tbson_iter_key = function(const iter : bson_iter_p) : PAnsiChar; cdecl;
   Tbson_iter_recurse = function(const iter : bson_iter_p; child : bson_iter_p) : ByteBool; cdecl;

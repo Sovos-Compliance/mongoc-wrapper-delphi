@@ -68,6 +68,7 @@ type
   TStringArray  = array of UTF8String;
   TVarRecArray = array of TVarRec;
 
+  {$Z4}
   TBsonType = (BSON_TYPE_EOD,
    BSON_TYPE_DOUBLE,
    BSON_TYPE_UTF8,
@@ -91,6 +92,7 @@ type
    BSON_TYPE_MINKEY);
 
    PBsonSubtype = ^TBsonSubtype;
+   {$Z4}
    TBsonSubtype = (BSON_SUBTYPE_BINARY,
      BSON_SUBTYPE_FUNCTION,
      BSON_SUBTYPE_BINARY_DEPRECATED,
