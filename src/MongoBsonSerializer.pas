@@ -570,6 +570,8 @@ var
   SubObject : TObject;
 begin
   SubObject := GetObjectProp(ASource, APropInfo);
+  if SubObject = nil then
+    exit;
 
   if SubObject is TCnvStringDictionary then
   begin
